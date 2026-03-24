@@ -1,0 +1,35 @@
+{
+  "version": "1.1",
+  "generated_at": "2026-02-13T21:17:49Z",
+  "course_dir": "/Users/moldovancsaba/Projects/amanoba_courses/ai-30-nap-hu-premium-rewrite-2026-02-11/quizzes",
+  "course_id": null,
+  "language": null,
+  "decision_policy": "recommend only when QUALITY_FAIL=0, COURSE_POLICY_FAIL=0, and taxonomy failures are promotable catalog-fit misses",
+  "recommendations": [],
+  "summary": {
+    "evaluated_questions": 210,
+    "candidates_before_support_gate": 0,
+    "recommendations_after_support_gate": 0,
+    "skipped_quality_fail": 0,
+    "skipped_policy_fail": 6,
+    "skipped_no_taxonomy_fail": 0,
+    "skipped_non_promotable_taxonomy": 204,
+    "skipped_existing_fit": 0,
+    "dropped_low_support": 0,
+    "recommend_min_support": 2,
+    "proposal_similarity_threshold": 0.82,
+    "promotable_taxonomy_codes": [
+      "skeleton_family_mismatch",
+      "skeleton_level_mismatch",
+      "skeleton_not_found"
+    ],
+    "non_promotable_taxonomy_codes": [
+      "invalid_skeleton_family_format",
+      "invalid_skeleton_id_format",
+      "invalid_skeleton_level",
+      "missing_skeleton_family",
+      "missing_skeleton_id",
+      "missing_skeleton_level"
+    ]
+  }
+}

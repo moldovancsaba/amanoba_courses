@@ -1,0 +1,35 @@
+{
+  "version": "1.1",
+  "generated_at": "2026-02-13T21:10:50Z",
+  "course_dir": "/Users/moldovancsaba/Projects/amanoba_courses/ai-30-day-en-cultural-adapt-2026-02-13/quizzes",
+  "course_id": "AI_30_DAY_EN",
+  "language": "en",
+  "decision_policy": "recommend only when QUALITY_FAIL=0, COURSE_POLICY_FAIL=0, and taxonomy failures are promotable catalog-fit misses",
+  "recommendations": [],
+  "summary": {
+    "evaluated_questions": 7,
+    "candidates_before_support_gate": 0,
+    "recommendations_after_support_gate": 0,
+    "skipped_quality_fail": 0,
+    "skipped_policy_fail": 0,
+    "skipped_no_taxonomy_fail": 7,
+    "skipped_non_promotable_taxonomy": 0,
+    "skipped_existing_fit": 0,
+    "dropped_low_support": 0,
+    "recommend_min_support": 2,
+    "proposal_similarity_threshold": 0.82,
+    "promotable_taxonomy_codes": [
+      "skeleton_family_mismatch",
+      "skeleton_level_mismatch",
+      "skeleton_not_found"
+    ],
+    "non_promotable_taxonomy_codes": [
+      "invalid_skeleton_family_format",
+      "invalid_skeleton_id_format",
+      "invalid_skeleton_level",
+      "missing_skeleton_family",
+      "missing_skeleton_id",
+      "missing_skeleton_level"
+    ]
+  }
+}

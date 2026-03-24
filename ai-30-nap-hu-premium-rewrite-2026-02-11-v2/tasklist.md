@@ -1,0 +1,34 @@
+# Tasklist
+
+- [x] Nap 01 lecke + kvíz lezárva
+- [x] Nap 02 lecke + kvíz lezárva
+- [x] Nap 03 lecke + kvíz lezárva
+- [x] Nap 04 lecke + kvíz lezárva
+- [x] Nap 05 lecke + kvíz lezárva
+- [x] Nap 06 lecke + kvíz lezárva
+- [x] Nap 07 lecke + kvíz lezárva
+- [x] Nap 08 lecke + kvíz lezárva
+- [x] Nap 09 lecke + kvíz lezárva
+- [x] Nap 10 lecke + kvíz lezárva
+- [x] Nap 11 lecke + kvíz lezárva
+- [x] Nap 12 lecke + kvíz lezárva
+- [x] Nap 13 lecke + kvíz lezárva
+- [x] Nap 14 lecke + kvíz lezárva
+- [x] Nap 15 lecke + kvíz lezárva
+- [x] Nap 16 lecke + kvíz lezárva
+- [x] Nap 17 lecke + kvíz lezárva
+- [x] Nap 18 lecke + kvíz lezárva
+- [x] Nap 19 lecke + kvíz lezárva
+- [x] Nap 20 lecke + kvíz lezárva
+- [x] Nap 21 lecke + kvíz lezárva
+- [x] Nap 22 lecke + kvíz lezárva
+- [x] Nap 23 lecke + kvíz lezárva
+- [x] Nap 24 lecke + kvíz lezárva
+- [x] Nap 25 lecke + kvíz lezárva
+- [x] Nap 26 lecke + kvíz lezárva
+- [x] Nap 27 lecke + kvíz lezárva
+- [x] Nap 28 lecke + kvíz lezárva
+- [x] Nap 29 lecke + kvíz lezárva
+- [x] Nap 30 lecke + kvíz lezárva
+- [x] Teljes csomag összeállítva
+- [x] Import readiness

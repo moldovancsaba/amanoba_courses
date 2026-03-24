@@ -1,0 +1,829 @@
+{
+  "schemaVersion": "1.0",
+  "courseIdBase": "GENERATIVE_AI_APPS_AGENTS_2026",
+  "courseName": "Generative AI 2026: Build AI Apps and Agents",
+  "version": "2026-02-06",
+  "language": "en",
+  "metadata": {
+    "regionalFocus": [
+      "Global"
+    ],
+    "motions": [
+      "B2C",
+      "B2B"
+    ],
+    "distribution": [
+      "Direct",
+      "Self-serve"
+    ],
+    "publish": {
+      "tagline": "Build and launch a sellable AI app with agents that can be monetized with Stripe, deployed in the cloud, well documented, and ready to use.",
+      "publicDescription": "A 30-day execution course for digital nomads who already use AI daily and want to ship a real commercial product. You will define a clear promise, scope an MVP, build reliable AI features, deploy on Vercel, add Stripe payments, and launch with a feedback driven iteration plan.",
+      "whoItsFor": [
+        "Digital nomads building a first commercial AI app",
+        "Solo builders and indie founders who need a repeatable process",
+        "Creators who want to monetize a practical AI workflow"
+      ],
+      "prerequisites": [
+        "Comfort with basic web development concepts",
+        "A GitHub account and basic git usage",
+        "OpenAI account and API access",
+        "Ability to spend 15 to 30 minutes per day for 30 days"
+      ],
+      "whatYouShip": [
+        "Product promise and success checklist",
+        "MVP scope and user flow",
+        "Working AI feature with safe prompts and guardrails",
+        "Staging and production deployment on Vercel",
+        "Stripe checkout and webhook based access control",
+        "Launch checklist and 30 day iteration roadmap"
+      ],
+      "useAndShareNote": "You may share outputs publicly, but remove confidential customer data and API keys. Replace examples with anonymized data.",
+      "licenseNote": "Unless you attach a separate license, treat this course content as proprietary to the publisher."
+    }
+  },
+  "intent": {
+    "oneSentence": "Teach digital nomads to build and launch a sellable AI app with agents, payments, and a clear path to iteration.",
+    "outcomes": [
+      "Define a narrow problem, user, and product promise that can be tested quickly.",
+      "Build a reliable AI feature with prompts, tools, and guardrails.",
+      "Deploy the product to the cloud and connect payments with Stripe.",
+      "Launch with a checklist and maintain a feedback driven iteration plan."
+    ],
+    "nonGoals": [
+      "Deep model training or ML research",
+      "Enterprise compliance programs",
+      "Complex infrastructure or multi cloud architecture"
+    ]
+  },
+  "qualityGates": {
+    "lessonLengthMinutes": [
+      20,
+      30
+    ],
+    "quizQuestions": 7,
+    "applicationMinimum": 5,
+    "criticalMinimum": 2,
+    "recallAllowed": false
+  },
+  "concepts": [
+    "product promise and measurable outcomes",
+    "problem selection with buyer signals",
+    "value proposition and pricing hypotheses",
+    "agent workflow design and tool calling",
+    "safe deployment and payments integration",
+    "cost control and reliability guardrails",
+    "launch readiness and feedback loops"
+  ],
+  "procedures": [
+    "Define problem, user, and promise, then scope MVP",
+    "Build and test AI features with prompts, tools, and guardrails",
+    "Deploy, monetize, and iterate using feedback and metrics"
+  ],
+  "assessmentBlueprint": {
+    "midCourse": {
+      "day": 15,
+      "deliverable": "MVP scope, agent workflow, and cost guard checklist",
+      "evaluation": "Scope clarity, workflow testability, and cost limits"
+    },
+    "final": {
+      "day": 30,
+      "deliverable": "Commercial AI app launch kit and 30 day iteration roadmap",
+      "evaluation": "Launch readiness, payment flow, and iteration plan quality"
+    }
+  },
+  "lessons": [
+    {
+      "dayNumber": 1,
+      "canonicalTitle": "Orientation and outcomes",
+      "objective": "Complete the Product Promise and Success Checklist to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "problem clarity and user outcomes",
+        "buyer signals and willingness to pay",
+        "value proposition structure",
+        "MVP scope rules",
+        "pricing hypothesis basics"
+      ],
+      "exercise": "Complete the Product Promise and Success Checklist by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Product Promise and Success Checklist",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "canonicalTitle": "Problem selection and niche",
+      "objective": "Complete the Problem Shortlist with Buyer Signals to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "problem clarity and user outcomes",
+        "buyer signals and willingness to pay",
+        "value proposition structure",
+        "MVP scope rules",
+        "pricing hypothesis basics"
+      ],
+      "exercise": "Complete the Problem Shortlist with Buyer Signals by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Problem Shortlist with Buyer Signals",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "canonicalTitle": "Target user and JTBD",
+      "objective": "Complete the Persona and JTBD Statement to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "problem clarity and user outcomes",
+        "buyer signals and willingness to pay",
+        "value proposition structure",
+        "MVP scope rules",
+        "pricing hypothesis basics"
+      ],
+      "exercise": "Complete the Persona and JTBD Statement by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Persona and JTBD Statement",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 4,
+      "canonicalTitle": "Value proposition and pricing hypothesis",
+      "objective": "Complete the Value Proposition and Pricing Draft to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "problem clarity and user outcomes",
+        "buyer signals and willingness to pay",
+        "value proposition structure",
+        "MVP scope rules",
+        "pricing hypothesis basics"
+      ],
+      "exercise": "Complete the Value Proposition and Pricing Draft by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Value Proposition and Pricing Draft",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 5,
+      "canonicalTitle": "Feature scoping for a first release",
+      "objective": "Complete the MVP Scope List to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "problem clarity and user outcomes",
+        "buyer signals and willingness to pay",
+        "value proposition structure",
+        "MVP scope rules",
+        "pricing hypothesis basics"
+      ],
+      "exercise": "Complete the MVP Scope List by following the lesson steps and record the result in your course folder.",
+      "deliverable": "MVP Scope List",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 6,
+      "canonicalTitle": "UX flow and user story map",
+      "objective": "Complete the User Story Map and Flow Steps to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "user flows and story mapping",
+        "stack choices for speed",
+        "repo hygiene and documentation",
+        "environment configuration",
+        "safe API usage"
+      ],
+      "exercise": "Complete the User Story Map and Flow Steps by following the lesson steps and record the result in your course folder.",
+      "deliverable": "User Story Map and Flow Steps",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 7,
+      "canonicalTitle": "Tech stack decision",
+      "objective": "Complete the Stack Decision Doc to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "user flows and story mapping",
+        "stack choices for speed",
+        "repo hygiene and documentation",
+        "environment configuration",
+        "safe API usage"
+      ],
+      "exercise": "Complete the Stack Decision Doc by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Stack Decision Doc",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 8,
+      "canonicalTitle": "Repo setup and Git hygiene",
+      "objective": "Complete the Repo with README and basic workflow rules to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "user flows and story mapping",
+        "stack choices for speed",
+        "repo hygiene and documentation",
+        "environment configuration",
+        "safe API usage"
+      ],
+      "exercise": "Complete the Repo with README and basic workflow rules by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Repo with README and basic workflow rules",
+      "sources": [
+        {
+          "title": "GitHub Docs",
+          "url": "https://docs.github.com"
+        },
+        {
+          "title": "Keep a Changelog",
+          "url": "https://keepachangelog.com"
+        }
+      ]
+    },
+    {
+      "dayNumber": 9,
+      "canonicalTitle": "Project structure and environment config",
+      "objective": "Complete the Project Skeleton and Env Template to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "user flows and story mapping",
+        "stack choices for speed",
+        "repo hygiene and documentation",
+        "environment configuration",
+        "safe API usage"
+      ],
+      "exercise": "Complete the Project Skeleton and Env Template by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Project Skeleton and Env Template",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 10,
+      "canonicalTitle": "OpenAI API basics and safe patterns",
+      "objective": "Complete the Working OpenAI Call with Error Handling to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "user flows and story mapping",
+        "stack choices for speed",
+        "repo hygiene and documentation",
+        "environment configuration",
+        "safe API usage"
+      ],
+      "exercise": "Complete the Working OpenAI Call with Error Handling by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Working OpenAI Call with Error Handling",
+      "sources": [
+        {
+          "title": "OpenAI Docs",
+          "url": "https://platform.openai.com/docs"
+        },
+        {
+          "title": "Prompt Engineering Guide",
+          "url": "https://platform.openai.com/docs/guides/prompt-engineering"
+        }
+      ]
+    },
+    {
+      "dayNumber": 11,
+      "canonicalTitle": "Prompt design for reliability",
+      "objective": "Complete the Prompt Spec and Test Set to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "prompt reliability",
+        "tool schemas and guardrails",
+        "agent workflow steps",
+        "data retention and privacy",
+        "cost caps and rate limits"
+      ],
+      "exercise": "Complete the Prompt Spec and Test Set by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Prompt Spec and Test Set",
+      "sources": [
+        {
+          "title": "OpenAI Docs",
+          "url": "https://platform.openai.com/docs"
+        },
+        {
+          "title": "Prompt Engineering Guide",
+          "url": "https://platform.openai.com/docs/guides/prompt-engineering"
+        }
+      ]
+    },
+    {
+      "dayNumber": 12,
+      "canonicalTitle": "Tool calling and actions",
+      "objective": "Complete the Tool Schema and Action Example to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "prompt reliability",
+        "tool schemas and guardrails",
+        "agent workflow steps",
+        "data retention and privacy",
+        "cost caps and rate limits"
+      ],
+      "exercise": "Complete the Tool Schema and Action Example by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Tool Schema and Action Example",
+      "sources": [
+        {
+          "title": "OpenAI Docs",
+          "url": "https://platform.openai.com/docs"
+        },
+        {
+          "title": "Prompt Engineering Guide",
+          "url": "https://platform.openai.com/docs/guides/prompt-engineering"
+        }
+      ]
+    },
+    {
+      "dayNumber": 13,
+      "canonicalTitle": "Agent workflow design",
+      "objective": "Complete the Agent Workflow Diagram and Steps to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "prompt reliability",
+        "tool schemas and guardrails",
+        "agent workflow steps",
+        "data retention and privacy",
+        "cost caps and rate limits"
+      ],
+      "exercise": "Complete the Agent Workflow Diagram and Steps by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Agent Workflow Diagram and Steps",
+      "sources": [
+        {
+          "title": "OpenAI Docs",
+          "url": "https://platform.openai.com/docs"
+        },
+        {
+          "title": "Prompt Engineering Guide",
+          "url": "https://platform.openai.com/docs/guides/prompt-engineering"
+        }
+      ]
+    },
+    {
+      "dayNumber": 14,
+      "canonicalTitle": "Data handling and memory",
+      "objective": "Complete the Data Retention and Storage Plan to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "prompt reliability",
+        "tool schemas and guardrails",
+        "agent workflow steps",
+        "data retention and privacy",
+        "cost caps and rate limits"
+      ],
+      "exercise": "Complete the Data Retention and Storage Plan by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Data Retention and Storage Plan",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 15,
+      "canonicalTitle": "Cost control and rate limits",
+      "objective": "Complete the Cost Guard Checklist and Limits to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "prompt reliability",
+        "tool schemas and guardrails",
+        "agent workflow steps",
+        "data retention and privacy",
+        "cost caps and rate limits"
+      ],
+      "exercise": "Complete the Cost Guard Checklist and Limits by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Cost Guard Checklist and Limits",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 16,
+      "canonicalTitle": "UI integration and UX copy",
+      "objective": "Complete the UI Wired to API with Onboarding Copy to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "UI integration and UX copy",
+        "scenario testing",
+        "error handling and fallbacks",
+        "logging and analytics",
+        "documentation essentials"
+      ],
+      "exercise": "Complete the UI Wired to API with Onboarding Copy by following the lesson steps and record the result in your course folder.",
+      "deliverable": "UI Wired to API with Onboarding Copy",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 17,
+      "canonicalTitle": "Testing the agent with scenarios",
+      "objective": "Complete the Scenario Test Report to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "UI integration and UX copy",
+        "scenario testing",
+        "error handling and fallbacks",
+        "logging and analytics",
+        "documentation essentials"
+      ],
+      "exercise": "Complete the Scenario Test Report by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Scenario Test Report",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 18,
+      "canonicalTitle": "Error handling and fallbacks",
+      "objective": "Complete the Fallback Logic and Error Responses to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "UI integration and UX copy",
+        "scenario testing",
+        "error handling and fallbacks",
+        "logging and analytics",
+        "documentation essentials"
+      ],
+      "exercise": "Complete the Fallback Logic and Error Responses by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Fallback Logic and Error Responses",
+      "sources": [
+        {
+          "title": "OWASP Top 10",
+          "url": "https://owasp.org/www-project-top-ten/"
+        },
+        {
+          "title": "NNGroup Error Messages",
+          "url": "https://www.nngroup.com/articles/error-message-guidelines/"
+        }
+      ]
+    },
+    {
+      "dayNumber": 19,
+      "canonicalTitle": "Logging and basic analytics",
+      "objective": "Complete the Logging Plan and Basic Event Capture to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "UI integration and UX copy",
+        "scenario testing",
+        "error handling and fallbacks",
+        "logging and analytics",
+        "documentation essentials"
+      ],
+      "exercise": "Complete the Logging Plan and Basic Event Capture by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Logging Plan and Basic Event Capture",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 20,
+      "canonicalTitle": "Documentation basics",
+      "objective": "Complete the User Guide and Dev Setup Doc to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "UI integration and UX copy",
+        "scenario testing",
+        "error handling and fallbacks",
+        "logging and analytics",
+        "documentation essentials"
+      ],
+      "exercise": "Complete the User Guide and Dev Setup Doc by following the lesson steps and record the result in your course folder.",
+      "deliverable": "User Guide and Dev Setup Doc",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 21,
+      "canonicalTitle": "Security and privacy essentials",
+      "objective": "Complete the Security Checklist and Privacy Notes to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "security basics and privacy notes",
+        "deployment and env vars",
+        "production readiness checks",
+        "Stripe checkout",
+        "webhooks and access control"
+      ],
+      "exercise": "Complete the Security Checklist and Privacy Notes by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Security Checklist and Privacy Notes",
+      "sources": [
+        {
+          "title": "OWASP Top 10",
+          "url": "https://owasp.org/www-project-top-ten/"
+        },
+        {
+          "title": "NNGroup Error Messages",
+          "url": "https://www.nngroup.com/articles/error-message-guidelines/"
+        }
+      ]
+    },
+    {
+      "dayNumber": 22,
+      "canonicalTitle": "Vercel deployment and env vars",
+      "objective": "Complete the Live Staging Deployment to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "security basics and privacy notes",
+        "deployment and env vars",
+        "production readiness checks",
+        "Stripe checkout",
+        "webhooks and access control"
+      ],
+      "exercise": "Complete the Live Staging Deployment by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Live Staging Deployment",
+      "sources": [
+        {
+          "title": "Vercel Docs",
+          "url": "https://vercel.com/docs"
+        },
+        {
+          "title": "12 Factor App Config",
+          "url": "https://12factor.net/config"
+        }
+      ]
+    },
+    {
+      "dayNumber": 23,
+      "canonicalTitle": "Domain and production readiness",
+      "objective": "Complete the Production Readiness Checklist to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "security basics and privacy notes",
+        "deployment and env vars",
+        "production readiness checks",
+        "Stripe checkout",
+        "webhooks and access control"
+      ],
+      "exercise": "Complete the Production Readiness Checklist by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Production Readiness Checklist",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 24,
+      "canonicalTitle": "Stripe checkout integration",
+      "objective": "Complete the Working Checkout Session to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "security basics and privacy notes",
+        "deployment and env vars",
+        "production readiness checks",
+        "Stripe checkout",
+        "webhooks and access control"
+      ],
+      "exercise": "Complete the Working Checkout Session by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Working Checkout Session",
+      "sources": [
+        {
+          "title": "Stripe Docs",
+          "url": "https://stripe.com/docs"
+        },
+        {
+          "title": "Stripe Checkout",
+          "url": "https://stripe.com/docs/payments/checkout"
+        }
+      ]
+    },
+    {
+      "dayNumber": 25,
+      "canonicalTitle": "Stripe webhooks and access control",
+      "objective": "Complete the Webhook Handler and Access Gate to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "security basics and privacy notes",
+        "deployment and env vars",
+        "production readiness checks",
+        "Stripe checkout",
+        "webhooks and access control"
+      ],
+      "exercise": "Complete the Webhook Handler and Access Gate by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Webhook Handler and Access Gate",
+      "sources": [
+        {
+          "title": "Stripe Docs",
+          "url": "https://stripe.com/docs"
+        },
+        {
+          "title": "Stripe Checkout",
+          "url": "https://stripe.com/docs/payments/checkout"
+        }
+      ]
+    },
+    {
+      "dayNumber": 26,
+      "canonicalTitle": "Pricing page and onboarding",
+      "objective": "Complete the Pricing Page and Onboarding Steps to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "pricing page clarity",
+        "launch checklist discipline",
+        "feedback loops",
+        "growth experiments",
+        "iteration planning"
+      ],
+      "exercise": "Complete the Pricing Page and Onboarding Steps by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Pricing Page and Onboarding Steps",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 27,
+      "canonicalTitle": "Launch checklist",
+      "objective": "Complete the Launch Checklist to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "pricing page clarity",
+        "launch checklist discipline",
+        "feedback loops",
+        "growth experiments",
+        "iteration planning"
+      ],
+      "exercise": "Complete the Launch Checklist by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Launch Checklist",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 28,
+      "canonicalTitle": "Post launch feedback loop",
+      "objective": "Complete the Feedback Plan and Issue List to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "pricing page clarity",
+        "launch checklist discipline",
+        "feedback loops",
+        "growth experiments",
+        "iteration planning"
+      ],
+      "exercise": "Complete the Feedback Plan and Issue List by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Feedback Plan and Issue List",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 29,
+      "canonicalTitle": "Growth experiments",
+      "objective": "Complete the Growth Experiment Plan to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "pricing page clarity",
+        "launch checklist discipline",
+        "feedback loops",
+        "growth experiments",
+        "iteration planning"
+      ],
+      "exercise": "Complete the Growth Experiment Plan by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Growth Experiment Plan",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    },
+    {
+      "dayNumber": 30,
+      "canonicalTitle": "Maintenance and iteration plan",
+      "objective": "Complete the Iteration Roadmap to progress the commercial AI app toward launch.",
+      "keyConcepts": [
+        "pricing page clarity",
+        "launch checklist discipline",
+        "feedback loops",
+        "growth experiments",
+        "iteration planning"
+      ],
+      "exercise": "Complete the Iteration Roadmap by following the lesson steps and record the result in your course folder.",
+      "deliverable": "Iteration Roadmap",
+      "sources": [
+        {
+          "title": "The Lean Startup",
+          "url": "https://theleanstartup.com/"
+        },
+        {
+          "title": "Strategyzer Value Proposition Canvas",
+          "url": "https://www.strategyzer.com/canvas/value-proposition-canvas"
+        }
+      ]
+    }
+  ],
+  "assessmentPlan": {
+    "midCourse": {
+      "day": 15,
+      "deliverable": "MVP scope, agent workflow, and cost guard checklist",
+      "gate": "Instructor or admin review for clarity and feasibility"
+    },
+    "final": {
+      "day": 30,
+      "deliverable": "Commercial AI app launch kit and 30 day iteration roadmap",
+      "gate": "Instructor or admin review for launch readiness and iteration plan"
+    }
+  }
+}

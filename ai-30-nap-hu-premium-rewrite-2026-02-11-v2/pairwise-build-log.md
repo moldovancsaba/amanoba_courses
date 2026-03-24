@@ -1,0 +1,33 @@
+# Pairwise Build Log v2
+
+- Mod: napi koros gyartas (napinditas -> lecke -> lecke QA -> kviz -> kviz QA -> napzaras)
+
+- Nap 02: PASS | lesson=lessons/lesson-02-a-jo-keres-4-eleme.md | quiz=quizzes/lesson-02-a-jo-keres-4-eleme-quiz.md
+- Nap 03: PASS | lesson=lessons/lesson-03-hogyan-kerdezz-vissza-az-ai-tol.md | quiz=quizzes/lesson-03-hogyan-kerdezz-vissza-az-ai-tol-quiz.md
+- Nap 04: PASS | lesson=lessons/lesson-04-stilus-es-hang-tanitsd-meg-ugy-irni-mint-te.md | quiz=quizzes/lesson-04-stilus-es-hang-tanitsd-meg-ugy-irni-mint-te-quiz.md
+- Nap 05: PASS | lesson=lessons/lesson-05-biztonsag-es-etika-a-gyakorlatban.md | quiz=quizzes/lesson-05-biztonsag-es-etika-a-gyakorlatban-quiz.md
+- Nap 06: PASS | lesson=lessons/lesson-06-e-mail-percek-alatt-profi-hangon.md | quiz=quizzes/lesson-06-e-mail-percek-alatt-profi-hangon-quiz.md
+- Nap 07: PASS | lesson=lessons/lesson-07-megbeszelesjegyzetbol-teendolista.md | quiz=quizzes/lesson-07-megbeszelesjegyzetbol-teendolista-quiz.md
+- Nap 08: PASS | lesson=lessons/lesson-08-dokumentumok-feladatleiras-vaz-osszefoglalo.md | quiz=quizzes/lesson-08-dokumentumok-feladatleiras-vaz-osszefoglalo-quiz.md
+- Nap 09: PASS | lesson=lessons/lesson-09-tablazat-gondolkodas-ai-val.md | quiz=quizzes/lesson-09-tablazat-gondolkodas-ai-val-quiz.md
+- Nap 10: PASS | lesson=lessons/lesson-10-ismetles-es-keres-hibakereses-nap.md | quiz=quizzes/lesson-10-ismetles-es-keres-hibakereses-nap-quiz.md
+- Nap 11: PASS | lesson=lessons/lesson-11-sajat-kereskonyvtar-letrehozasa.md | quiz=quizzes/lesson-11-sajat-kereskonyvtar-letrehozasa-quiz.md
+- Nap 12: PASS | lesson=lessons/lesson-12-munkafolyamat-input-feldolgozas-output.md | quiz=quizzes/lesson-12-munkafolyamat-input-feldolgozas-output-quiz.md
+- Nap 13: PASS | lesson=lessons/lesson-13-hibak-es-hallucinaciok-kezelese.md | quiz=quizzes/lesson-13-hibak-es-hallucinaciok-kezelese-quiz.md
+- Nap 14: PASS | lesson=lessons/lesson-14-szemelyes-ai-asszisztens-hang-kialakitasa.md | quiz=quizzes/lesson-14-szemelyes-ai-asszisztens-hang-kialakitasa-quiz.md
+- Nap 15: PASS | lesson=lessons/lesson-15-ismetles-rossz-keresbol-jo-keres.md | quiz=quizzes/lesson-15-ismetles-rossz-keresbol-jo-keres-quiz.md
+- Nap 16: PASS | lesson=lessons/lesson-16-szerephez-illesztett-ai-belepo-nap.md | quiz=quizzes/lesson-16-szerephez-illesztett-ai-belepo-nap-quiz.md
+- Nap 17: PASS | lesson=lessons/lesson-17-szerephez-illesztett-sabloncsomag-i.md | quiz=quizzes/lesson-17-szerephez-illesztett-sabloncsomag-i-quiz.md
+- Nap 18: PASS | lesson=lessons/lesson-18-szerephez-illesztett-sabloncsomag-ii.md | quiz=quizzes/lesson-18-szerephez-illesztett-sabloncsomag-ii-quiz.md
+- Nap 19: PASS | lesson=lessons/lesson-19-tipikus-csapdak-az-adott-szerepben.md | quiz=quizzes/lesson-19-tipikus-csapdak-az-adott-szerepben-quiz.md
+- Nap 20: PASS | lesson=lessons/lesson-20-keszsegmeres-es-szintlepes.md | quiz=quizzes/lesson-20-keszsegmeres-es-szintlepes-quiz.md
+- Nap 21: PASS | lesson=lessons/lesson-21-otletvalidalas-ai-val.md | quiz=quizzes/lesson-21-otletvalidalas-ai-val-quiz.md
+- Nap 22: PASS | lesson=lessons/lesson-22-vevoprofil-es-ertekajanlat.md | quiz=quizzes/lesson-22-vevoprofil-es-ertekajanlat-quiz.md
+- Nap 23: PASS | lesson=lessons/lesson-23-celoldal-vaz-es-szoveg.md | quiz=quizzes/lesson-23-celoldal-vaz-es-szoveg-quiz.md
+- Nap 24: PASS | lesson=lessons/lesson-24-arazas-alapjai.md | quiz=quizzes/lesson-24-arazas-alapjai-quiz.md
+- Nap 25: PASS | lesson=lessons/lesson-25-mvp-gondolkodas-mit-nem-csinalunk.md | quiz=quizzes/lesson-25-mvp-gondolkodas-mit-nem-csinalunk-quiz.md
+- Nap 26: PASS | lesson=lessons/lesson-26-sajat-ai-rutin-kialakitasa.md | quiz=quizzes/lesson-26-sajat-ai-rutin-kialakitasa-quiz.md
+- Nap 27: PASS | lesson=lessons/lesson-27-60-masodperces-rovid-bemutato-ai-val.md | quiz=quizzes/lesson-27-60-masodperces-rovid-bemutato-ai-val-quiz.md
+- Nap 28: PASS | lesson=lessons/lesson-28-portfolio-szintu-kimenetek.md | quiz=quizzes/lesson-28-portfolio-szintu-kimenetek-quiz.md
+- Nap 29: PASS | lesson=lessons/lesson-29-szemelyes-fejlodesi-terkep.md | quiz=quizzes/lesson-29-szemelyes-fejlodesi-terkep-quiz.md
+- Nap 30: PASS | lesson=lessons/lesson-30-zaras-merre-tovabb.md | quiz=quizzes/lesson-30-zaras-merre-tovabb-quiz.md

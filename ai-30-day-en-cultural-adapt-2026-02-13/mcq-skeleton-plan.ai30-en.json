@@ -1,0 +1,1687 @@
+{
+  "plan_version": "1.0",
+  "generated_at": "2026-02-13T21:10:50Z",
+  "course_id": "AI_30_DAY_EN",
+  "language": "en",
+  "target_level": "foundation",
+  "selection_levels_used": [
+    "foundation",
+    "practitioner"
+  ],
+  "tag_filters": {
+    "course_type": [
+      "ai-foundation",
+      "ai"
+    ]
+  },
+  "constraints": {
+    "lessons": 30,
+    "questions_per_lesson": 7,
+    "max_family_uses": 10,
+    "max_family_per_lesson": 2,
+    "no_adjacent_same_family": true,
+    "seed": 42
+  },
+  "summary": {
+    "total_slots": 210,
+    "unique_skeletons": 30,
+    "family_usage": {
+      "baseline_definition": 3,
+      "constraint_prioritization": 5,
+      "data_collection_plan": 10,
+      "email_draft_quality": 5,
+      "error_recovery_plan": 10,
+      "escalation_threshold": 7,
+      "first_ai_adoption_step": 7,
+      "first_experiment_design": 7,
+      "handoff_quality": 10,
+      "intervention_timing": 6,
+      "localization_decision": 9,
+      "meeting_notes_to_actions": 2,
+      "metric_selection": 8,
+      "naming_taxonomy": 6,
+      "prompt_specificity_fix": 3,
+      "quality_rubric_choice": 10,
+      "rollout_plan": 8,
+      "root_cause_diagnosis": 8,
+      "scope_control": 7,
+      "segmentation_choice": 10,
+      "sensitive_data_prompting": 10,
+      "source_reliability": 6,
+      "source_verification": 4,
+      "stakeholder_alignment": 9,
+      "summary_quality_check": 5,
+      "table_output_validation": 8,
+      "tradeoff_choice": 6,
+      "translation_naturalness": 10,
+      "weekly_ai_routine": 8,
+      "workflow_bottleneck": 3
+    },
+    "level_usage": {
+      "foundation": 62,
+      "practitioner": 148
+    }
+  },
+  "lessons": [
+    {
+      "lesson_number": 1,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S13_SUMMARY_COMPLETENESS_CHECK",
+          "skeleton_family": "summary_quality_check",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Summary Completeness Check"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S02_FIRST_EXPERIMENT",
+          "skeleton_family": "first_experiment_design",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "First Experiment Design"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S13_SUMMARY_COMPLETENESS_CHECK",
+          "skeleton_family": "summary_quality_check",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Summary Completeness Check"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S27_WORKFLOW_BOTTLENECK",
+          "skeleton_family": "workflow_bottleneck",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Workflow Bottleneck"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S05_PRIORITIZE_CONSTRAINTS",
+          "skeleton_family": "constraint_prioritization",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Prioritize Under Constraints"
+        }
+      ]
+    },
+    {
+      "lesson_number": 2,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S35_INTERVENTION_TIMING",
+          "skeleton_family": "intervention_timing",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Intervention Timing"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S05_PRIORITIZE_CONSTRAINTS",
+          "skeleton_family": "constraint_prioritization",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Prioritize Under Constraints"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        }
+      ]
+    },
+    {
+      "lesson_number": 3,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S32_SCOPE_CONTROL",
+          "skeleton_family": "scope_control",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Scope Control Rule"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        }
+      ]
+    },
+    {
+      "lesson_number": 4,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S24_SOURCE_RELIABILITY",
+          "skeleton_family": "source_reliability",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Source Reliability Choice"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S24_SOURCE_RELIABILITY",
+          "skeleton_family": "source_reliability",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Source Reliability Choice"
+        }
+      ]
+    },
+    {
+      "lesson_number": 5,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S15_SOURCE_VERIFICATION",
+          "skeleton_family": "source_verification",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Source Verification"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S11_FIRST_AI_STEP",
+          "skeleton_family": "first_ai_adoption_step",
+          "skeleton_level": "foundation",
+          "skeleton_name": "First AI Step"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S22_BASELINE_DEFINITION",
+          "skeleton_family": "baseline_definition",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Baseline Definition"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S02_FIRST_EXPERIMENT",
+          "skeleton_family": "first_experiment_design",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "First Experiment Design"
+        }
+      ]
+    },
+    {
+      "lesson_number": 6,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S13_SUMMARY_COMPLETENESS_CHECK",
+          "skeleton_family": "summary_quality_check",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Summary Completeness Check"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S39_NAMING_TAXONOMY",
+          "skeleton_family": "naming_taxonomy",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Naming Taxonomy Rule"
+        }
+      ]
+    },
+    {
+      "lesson_number": 7,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        }
+      ]
+    },
+    {
+      "lesson_number": 8,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S02_FIRST_EXPERIMENT",
+          "skeleton_family": "first_experiment_design",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "First Experiment Design"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S12_PROMPT_SPECIFICITY",
+          "skeleton_family": "prompt_specificity_fix",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Prompt Specificity Fix"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S25_ESCALATION_THRESHOLD",
+          "skeleton_family": "escalation_threshold",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Escalation Threshold"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S28_TRADEOFF_CHOICE",
+          "skeleton_family": "tradeoff_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Tradeoff Choice"
+        }
+      ]
+    },
+    {
+      "lesson_number": 9,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S25_ESCALATION_THRESHOLD",
+          "skeleton_family": "escalation_threshold",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Escalation Threshold"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S25_ESCALATION_THRESHOLD",
+          "skeleton_family": "escalation_threshold",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Escalation Threshold"
+        }
+      ]
+    },
+    {
+      "lesson_number": 10,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S11_FIRST_AI_STEP",
+          "skeleton_family": "first_ai_adoption_step",
+          "skeleton_level": "foundation",
+          "skeleton_name": "First AI Step"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S17_MEETING_NOTES_ACTIONS",
+          "skeleton_family": "meeting_notes_to_actions",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Meeting Notes to Action Items"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S25_ESCALATION_THRESHOLD",
+          "skeleton_family": "escalation_threshold",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Escalation Threshold"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        }
+      ]
+    },
+    {
+      "lesson_number": 11,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S11_FIRST_AI_STEP",
+          "skeleton_family": "first_ai_adoption_step",
+          "skeleton_level": "foundation",
+          "skeleton_name": "First AI Step"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S05_PRIORITIZE_CONSTRAINTS",
+          "skeleton_family": "constraint_prioritization",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Prioritize Under Constraints"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S32_SCOPE_CONTROL",
+          "skeleton_family": "scope_control",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Scope Control Rule"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S14_EMAIL_DRAFT_QUALITY",
+          "skeleton_family": "email_draft_quality",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Email Draft Quality"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S12_PROMPT_SPECIFICITY",
+          "skeleton_family": "prompt_specificity_fix",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Prompt Specificity Fix"
+        }
+      ]
+    },
+    {
+      "lesson_number": 12,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S05_PRIORITIZE_CONSTRAINTS",
+          "skeleton_family": "constraint_prioritization",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Prioritize Under Constraints"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        }
+      ]
+    },
+    {
+      "lesson_number": 13,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S11_FIRST_AI_STEP",
+          "skeleton_family": "first_ai_adoption_step",
+          "skeleton_level": "foundation",
+          "skeleton_name": "First AI Step"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S22_BASELINE_DEFINITION",
+          "skeleton_family": "baseline_definition",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Baseline Definition"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S14_EMAIL_DRAFT_QUALITY",
+          "skeleton_family": "email_draft_quality",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Email Draft Quality"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S22_BASELINE_DEFINITION",
+          "skeleton_family": "baseline_definition",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Baseline Definition"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S28_TRADEOFF_CHOICE",
+          "skeleton_family": "tradeoff_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Tradeoff Choice"
+        }
+      ]
+    },
+    {
+      "lesson_number": 14,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S32_SCOPE_CONTROL",
+          "skeleton_family": "scope_control",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Scope Control Rule"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S35_INTERVENTION_TIMING",
+          "skeleton_family": "intervention_timing",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Intervention Timing"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        }
+      ]
+    },
+    {
+      "lesson_number": 15,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S25_ESCALATION_THRESHOLD",
+          "skeleton_family": "escalation_threshold",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Escalation Threshold"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S39_NAMING_TAXONOMY",
+          "skeleton_family": "naming_taxonomy",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Naming Taxonomy Rule"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S35_INTERVENTION_TIMING",
+          "skeleton_family": "intervention_timing",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Intervention Timing"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S32_SCOPE_CONTROL",
+          "skeleton_family": "scope_control",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Scope Control Rule"
+        }
+      ]
+    },
+    {
+      "lesson_number": 16,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S33_DATA_COLLECTION_PLAN",
+          "skeleton_family": "data_collection_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Data Collection Plan"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S39_NAMING_TAXONOMY",
+          "skeleton_family": "naming_taxonomy",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Naming Taxonomy Rule"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S35_INTERVENTION_TIMING",
+          "skeleton_family": "intervention_timing",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Intervention Timing"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S14_EMAIL_DRAFT_QUALITY",
+          "skeleton_family": "email_draft_quality",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Email Draft Quality"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        }
+      ]
+    },
+    {
+      "lesson_number": 17,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S32_SCOPE_CONTROL",
+          "skeleton_family": "scope_control",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Scope Control Rule"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S39_NAMING_TAXONOMY",
+          "skeleton_family": "naming_taxonomy",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Naming Taxonomy Rule"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        }
+      ]
+    },
+    {
+      "lesson_number": 18,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S14_EMAIL_DRAFT_QUALITY",
+          "skeleton_family": "email_draft_quality",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Email Draft Quality"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S25_ESCALATION_THRESHOLD",
+          "skeleton_family": "escalation_threshold",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Escalation Threshold"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        }
+      ]
+    },
+    {
+      "lesson_number": 19,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S32_SCOPE_CONTROL",
+          "skeleton_family": "scope_control",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Scope Control Rule"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S17_MEETING_NOTES_ACTIONS",
+          "skeleton_family": "meeting_notes_to_actions",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Meeting Notes to Action Items"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S24_SOURCE_RELIABILITY",
+          "skeleton_family": "source_reliability",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Source Reliability Choice"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        }
+      ]
+    },
+    {
+      "lesson_number": 20,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S28_TRADEOFF_CHOICE",
+          "skeleton_family": "tradeoff_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Tradeoff Choice"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S02_FIRST_EXPERIMENT",
+          "skeleton_family": "first_experiment_design",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "First Experiment Design"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S24_SOURCE_RELIABILITY",
+          "skeleton_family": "source_reliability",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Source Reliability Choice"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S12_PROMPT_SPECIFICITY",
+          "skeleton_family": "prompt_specificity_fix",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Prompt Specificity Fix"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        }
+      ]
+    },
+    {
+      "lesson_number": 21,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S04_DIAGNOSE_FAILURE",
+          "skeleton_family": "root_cause_diagnosis",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Diagnose Failure"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S11_FIRST_AI_STEP",
+          "skeleton_family": "first_ai_adoption_step",
+          "skeleton_level": "foundation",
+          "skeleton_name": "First AI Step"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S24_SOURCE_RELIABILITY",
+          "skeleton_family": "source_reliability",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Source Reliability Choice"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S15_SOURCE_VERIFICATION",
+          "skeleton_family": "source_verification",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Source Verification"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S24_SOURCE_RELIABILITY",
+          "skeleton_family": "source_reliability",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Source Reliability Choice"
+        }
+      ]
+    },
+    {
+      "lesson_number": 22,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S27_WORKFLOW_BOTTLENECK",
+          "skeleton_family": "workflow_bottleneck",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Workflow Bottleneck"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S35_INTERVENTION_TIMING",
+          "skeleton_family": "intervention_timing",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Intervention Timing"
+        }
+      ]
+    },
+    {
+      "lesson_number": 23,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S39_NAMING_TAXONOMY",
+          "skeleton_family": "naming_taxonomy",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Naming Taxonomy Rule"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S05_PRIORITIZE_CONSTRAINTS",
+          "skeleton_family": "constraint_prioritization",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Prioritize Under Constraints"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        }
+      ]
+    },
+    {
+      "lesson_number": 24,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S25_ESCALATION_THRESHOLD",
+          "skeleton_family": "escalation_threshold",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Escalation Threshold"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S11_FIRST_AI_STEP",
+          "skeleton_family": "first_ai_adoption_step",
+          "skeleton_level": "foundation",
+          "skeleton_name": "First AI Step"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S35_INTERVENTION_TIMING",
+          "skeleton_family": "intervention_timing",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Intervention Timing"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S28_TRADEOFF_CHOICE",
+          "skeleton_family": "tradeoff_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Tradeoff Choice"
+        }
+      ]
+    },
+    {
+      "lesson_number": 25,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S02_FIRST_EXPERIMENT",
+          "skeleton_family": "first_experiment_design",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "First Experiment Design"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S31_STAKEHOLDER_ALIGNMENT",
+          "skeleton_family": "stakeholder_alignment",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Stakeholder Alignment"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        }
+      ]
+    },
+    {
+      "lesson_number": 26,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S02_FIRST_EXPERIMENT",
+          "skeleton_family": "first_experiment_design",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "First Experiment Design"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S15_SOURCE_VERIFICATION",
+          "skeleton_family": "source_verification",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Source Verification"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        }
+      ]
+    },
+    {
+      "lesson_number": 27,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S39_NAMING_TAXONOMY",
+          "skeleton_family": "naming_taxonomy",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Naming Taxonomy Rule"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S03_METRIC_SELECTION",
+          "skeleton_family": "metric_selection",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Metric Selection"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S14_EMAIL_DRAFT_QUALITY",
+          "skeleton_family": "email_draft_quality",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Email Draft Quality"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S13_SUMMARY_COMPLETENESS_CHECK",
+          "skeleton_family": "summary_quality_check",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Summary Completeness Check"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        }
+      ]
+    },
+    {
+      "lesson_number": 28,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S21_SEGMENTATION_CHOICE",
+          "skeleton_family": "segmentation_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Segmentation Choice"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S28_TRADEOFF_CHOICE",
+          "skeleton_family": "tradeoff_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Tradeoff Choice"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S01_ROLLOUT_PLAN",
+          "skeleton_family": "rollout_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Rollout Plan"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S13_SUMMARY_COMPLETENESS_CHECK",
+          "skeleton_family": "summary_quality_check",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Summary Completeness Check"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S36_QUALITY_RUBRIC_CHOICE",
+          "skeleton_family": "quality_rubric_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Quality Rubric Choice"
+        }
+      ]
+    },
+    {
+      "lesson_number": 29,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S40_LOCALIZATION_DECISION",
+          "skeleton_family": "localization_decision",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Localization Decision"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S27_WORKFLOW_BOTTLENECK",
+          "skeleton_family": "workflow_bottleneck",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Workflow Bottleneck"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S16_TRANSLATION_NATURALNESS",
+          "skeleton_family": "translation_naturalness",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Translation Naturalness Check"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S15_SOURCE_VERIFICATION",
+          "skeleton_family": "source_verification",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Source Verification"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S28_TRADEOFF_CHOICE",
+          "skeleton_family": "tradeoff_choice",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Tradeoff Choice"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S26_HANDOFF_QUALITY",
+          "skeleton_family": "handoff_quality",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Handoff Quality"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S19_SENSITIVE_DATA_HANDLING",
+          "skeleton_family": "sensitive_data_prompting",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Sensitive Data Handling"
+        }
+      ]
+    },
+    {
+      "lesson_number": 30,
+      "questions": [
+        {
+          "question_number": 1,
+          "skeleton_id": "S20_WEEKLY_AI_ROUTINE",
+          "skeleton_family": "weekly_ai_routine",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Weekly AI Routine"
+        },
+        {
+          "question_number": 2,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        },
+        {
+          "question_number": 3,
+          "skeleton_id": "S18_TABLE_VALIDATION",
+          "skeleton_family": "table_output_validation",
+          "skeleton_level": "foundation",
+          "skeleton_name": "Table Output Validation"
+        },
+        {
+          "question_number": 4,
+          "skeleton_id": "S32_SCOPE_CONTROL",
+          "skeleton_family": "scope_control",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Scope Control Rule"
+        },
+        {
+          "question_number": 5,
+          "skeleton_id": "S11_FIRST_AI_STEP",
+          "skeleton_family": "first_ai_adoption_step",
+          "skeleton_level": "foundation",
+          "skeleton_name": "First AI Step"
+        },
+        {
+          "question_number": 6,
+          "skeleton_id": "S02_FIRST_EXPERIMENT",
+          "skeleton_family": "first_experiment_design",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "First Experiment Design"
+        },
+        {
+          "question_number": 7,
+          "skeleton_id": "S30_ERROR_RECOVERY",
+          "skeleton_family": "error_recovery_plan",
+          "skeleton_level": "practitioner",
+          "skeleton_name": "Error Recovery Plan"
+        }
+      ]
+    }
+  ]
+}

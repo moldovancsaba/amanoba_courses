@@ -1,0 +1,73 @@
+# Lesson 13 Quiz: Hibák, hallucinációk kezelése
+
+## Question pool
+
+### Q1
+Hibák, hallucinációk kezelése: A következő helyzetben dolgozol: Piaci adatokat tartalmazó összefoglaló készítése. Mi az első lépés a mérhető kimenethez?
+- A. A cél és az elfogadási kritérium rögzítése a prompt elején
+- B. Azonnali hosszú válasz kérése korlátok nélkül
+- C. Csak a sebességre optimalizálás
+- D. Ellenőrzés kihagyása az első körben
+- Correct: A
+- Type: application
+- Difficulty: MEDIUM
+
+### Q2
+Hibák, hallucinációk kezelése: A kimenet túl általános lett. Melyik javítás adja a legnagyobb minőségugrást?
+- A. Konkrét formátumot, terjedelmet és célközönséget adsz meg újrafuttatás előtt
+- B. Ugyanazt a promptot ismét futtatod változtatás nélkül
+- C. Az AI használatát teljesen elhagyod
+- D. Csak a helyesírást javítod a tartalom helyett
+- Correct: A
+- Type: diagnostic
+- Difficulty: HARD
+
+### Q3
+Hibák, hallucinációk kezelése: Melyik lépés csökkenti legjobban ezt a kockázatot: hibás információ továbbadása?
+- A. Kötelező minőségkapu futtatása küldés előtt
+- B. Csak formai ellenőrzés tartalmi validálás nélkül
+- C. Gyorsaság előnyben részesítése minden helyzetben
+- D. Ugyanaz a sablon minden kontextusra
+- Correct: A
+- Type: best_practice
+- Difficulty: MEDIUM
+
+### Q4
+Hibák, hallucinációk kezelése: Melyik mutató bizonyítja legjobban, hogy működik a napi módszer? (5 állításból 5 forrással alátámasztott)
+- A. A mérőszám teljesül valós próbafeladaton
+- B. A válasz hosszabb lett az előzőnél
+- C. A válasz gyorsan elkészült ellenőrzés nélkül
+- D. A szöveg sok szakmai kifejezést tartalmaz
+- Correct: A
+- Type: metric
+- Difficulty: MEDIUM
+
+### Q5
+Hibák, hallucinációk kezelése: Melyik döntés mutatja a legjobb kezdő szemléletet?
+- A. Sebesség és minőség együtt, kötelező emberi ellenőrzéssel
+- B. Csak sebességre fókusz, ellenőrzés később
+- C. A modell válaszát bizonyíték nélkül elfogadod
+- D. A kontextust kihagyod, mert úgyis kitalálja
+- Correct: A
+- Type: critical-thinking
+- Difficulty: HARD
+
+### Q6
+Hibák, hallucinációk kezelése: Melyik prompt ad legnagyobb eséllyel használható kimenetet első körben?
+- A. Adj 2 verziót max 120 szóban, célközönségre szabva, konkrét következő lépéssel
+- B. Írj valamit erről gyorsan
+- C. Legyen hosszú szöveg, a formátum mindegy
+- D. Bármilyen stílus jó, nincs elvárás
+- Correct: A
+- Type: application
+- Difficulty: MEDIUM
+
+### Q7
+Hibák, hallucinációk kezelése: Melyik sorrend adja a legkevesebb újramunkát?
+- A. Cél -> Prompt -> Minőségellenőrzés -> Finomítás
+- B. Prompt -> Küldés -> Utólagos javítás
+- C. Korlátok kihagyása -> Többszöri vak újrafuttatás
+- D. Részletes elvárás nélkül kérés -> Teljes kézi átírás
+- Correct: A
+- Type: application
+- Difficulty: MEDIUM

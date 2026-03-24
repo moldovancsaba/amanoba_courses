@@ -1,0 +1,152 @@
+import AppKit
+import Foundation
+
+final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let menu = NSMenu()
+    private let productItem = NSMenuItem(title: "Amanoba v__APP_VERSION__", action: nil, keyEquivalent: "")
+    private let healthItem = NSMenuItem(title: "Health: checking...", action: nil, keyEquivalent: "")
+    private let powerItem = NSMenuItem(title: "Power: ...", action: nil, keyEquivalent: "")
+    private let jobsItem = NSMenuItem(title: "Jobs: ...", action: nil, keyEquivalent: "")
+    private let repoRoot = "__REPO_ROOT__"
+    private let dashboardURL = "http://127.0.0.1:8765"
+    private var timer: Timer?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let button = statusItem.button else { return }
+        button.title = "AQ"
+
+        productItem.isEnabled = false
+        healthItem.isEnabled = false
+        powerItem.isEnabled = false
+        jobsItem.isEnabled = false
+
+        menu.addItem(productItem)
+        menu.addItem(healthItem)
+        menu.addItem(powerItem)
+        menu.addItem(jobsItem)
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(item("Open Control Center", #selector(openDashboard)))
+        menu.addItem(item("Open Feed JSON", #selector(openFeed)))
+        menu.addItem(item("Open Health JSON", #selector(openHealth)))
+        menu.addItem(item("Process One Job", #selector(runOneJob)))
+        menu.addItem(item("Scan Workspace", #selector(scanWorkspace)))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(item("Set Gentle Mode", #selector(setGentle)))
+        menu.addItem(item("Set Balanced Mode", #selector(setBalanced)))
+        menu.addItem(item("Set Fast Mode", #selector(setFast)))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(item("Restart Services", #selector(restartServices)))
+        menu.addItem(item("Install/Refresh Services", #selector(installServices)))
+        menu.addItem(item("Open Logs Folder", #selector(openLogsFolder)))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(item("Quit", #selector(quitApp)))
+
+        statusItem.menu = menu
+        refreshHealth()
+        timer = Timer.scheduledTimer(timeInterval: 5.0, target: self, selector: #selector(refreshHealth), userInfo: nil, repeats: true)
+    }
+
+    private func item(_ title: String, _ action: Selector) -> NSMenuItem {
+        let m = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        m.target = self
+        return m
+    }
+
+    private func runShell(_ command: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = ["-lc", "cd \"\(repoRoot)\" && \(command)"]
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        try? process.run()
+    }
+
+    @objc private func refreshHealth() {
+        guard let url = URL(string: "\(dashboardURL)/api/health") else { return }
+        let task = URLSession.shared.dataTask(with: url) { data, response, _ in
+            DispatchQueue.main.async {
+                guard
+                    let http = response as? HTTPURLResponse,
+                    http.statusCode == 200,
+                    let data = data,
+                    let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                else {
+                    self.healthItem.title = "Health: dashboard down"
+                    self.powerItem.title = "Power: unknown"
+                    self.jobsItem.title = "Jobs: unknown"
+                    self.statusItem.button?.title = "AQ!"
+                    return
+                }
+
+                let power = (obj["power"] as? [String: Any]) ?? [:]
+                let counts = (obj["counts"] as? [String: Any]) ?? [:]
+                let pending = counts["pending"] as? Int ?? 0
+                let running = counts["running"] as? Int ?? 0
+                let completed = counts["completed"] as? Int ?? 0
+                let failed = counts["failed"] as? Int ?? 0
+                let mode = (power["mode"] as? String) ?? "unknown"
+
+                self.healthItem.title = "Health: dashboard up"
+                self.powerItem.title = "Power: \(mode)"
+                self.jobsItem.title = "Jobs: pending \(pending) | running \(running) | done \(completed) | failed \(failed)"
+                self.statusItem.button?.title = running > 0 ? "AQ*" : "AQ"
+            }
+        }
+        task.resume()
+    }
+
+    @objc private func openDashboard() {
+        NSWorkspace.shared.open(URL(string: dashboardURL)!)
+    }
+
+    @objc private func openFeed() {
+        NSWorkspace.shared.open(URL(string: "\(dashboardURL)/api/feed?limit=10")!)
+    }
+
+    @objc private func openHealth() {
+        NSWorkspace.shared.open(URL(string: "\(dashboardURL)/api/health")!)
+    }
+
+    @objc private func runOneJob() {
+        runShell("curl -sS -X POST '\(dashboardURL)/api/run-once?maxItems=1' >/dev/null")
+    }
+
+    @objc private func scanWorkspace() {
+        runShell("curl -sS -X POST '\(dashboardURL)/api/scan' >/dev/null")
+    }
+
+    @objc private func setGentle() {
+        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=gentle' >/dev/null")
+    }
+
+    @objc private func setBalanced() {
+        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=balanced' >/dev/null")
+    }
+
+    @objc private func setFast() {
+        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=fast' >/dev/null")
+    }
+
+    @objc private func restartServices() {
+        runShell("launchctl kickstart -k gui/$UID/com.amanoba.coursequality.worker && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.dashboard")
+    }
+
+    @objc private func installServices() {
+        runShell("bash scripts/install-course-quality-launchagents.sh")
+    }
+
+    @objc private func openLogsFolder() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "\(repoRoot)/.course-quality/launchd"))
+    }
+
+    @objc private func quitApp() {
+        NSApplication.shared.terminate(nil)
+    }
+}
+
+let app = NSApplication.shared
+let delegate = AmanobaMenubarApp()
+app.delegate = delegate
+app.setActivationPolicy(.accessory)
+app.run()

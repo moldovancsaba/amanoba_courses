@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.amanoba.course-quality-daemon</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/python3</string>
+      <string>-m</string>
+      <string>course_quality_daemon</string>
+      <string>--config</string>
+      <string>/Users/moldovancsaba/Projects/amanoba-courses/course_quality_daemon.json</string>
+      <string>daemon</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/moldovancsaba/Projects/amanoba-courses</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>OPENAI_API_KEY</key>
+      <string>SET_YOUR_KEY_HERE</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/moldovancsaba/Projects/amanoba-courses/.course-quality/launchd.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/moldovancsaba/Projects/amanoba-courses/.course-quality/launchd.stderr.log</string>
+  </dict>
+</plist>
