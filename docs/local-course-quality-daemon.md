@@ -179,7 +179,7 @@ Watchdog logs:
 To launch the app the same way as `{hatori}` or `{reply}`, use either root-level launcher:
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba-courses
+cd /Users/moldovancsaba/Projects/amanoba_courses
 ./start_amanoba.command
 ```
 
@@ -193,7 +193,7 @@ These launchers refresh the background services, wait for dashboard health, and 
 ## Quick start
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba-courses
+cd /Users/moldovancsaba/Projects/amanoba_courses
 cp course_quality_daemon.example.json course_quality_daemon.json
 python3 -m course_quality_daemon --config course_quality_daemon.json scan
 python3 -m course_quality_daemon --config course_quality_daemon.json health
@@ -231,16 +231,22 @@ The live bridge calls are hard-timed:
 
 ## Local versioning
 
-This workspace currently does not have Git metadata available, so local version provenance cannot be inferred from `git status` or `git log`.
+This workspace is Git-backed at:
 
-For this project, the operational source of truth is:
+- `moldovancsaba/amanoba_courses`
+- `https://github.com/moldovancsaba/amanoba_courses.git`
+
+For this project, the operational runtime source of truth is:
 
 - the live code under `course_quality_daemon/`
 - the active config in `course_quality_daemon.json`
 - the launch-agent definitions in `scripts/install-course-quality-launchagents.sh`
 - the runtime reports under `.course-quality/reports/`
 
-Do not assume commit-based provenance unless this workspace is reattached to a Git repository.
+GitHub issue planning source of truth is separate:
+
+- issue repository: `moldovancsaba/mvp-factory-control`
+- project board: `https://github.com/users/moldovancsaba/projects/1`
 
 ## Recommended rollout
 

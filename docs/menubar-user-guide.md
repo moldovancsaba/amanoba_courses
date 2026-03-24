@@ -5,7 +5,7 @@ This guide explains what you can do from the macOS menu bar app (`AmanobaMenubar
 ## Install
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba-courses
+cd /Users/moldovancsaba/Projects/amanoba_courses
 bash tools/macos/AmanobaMenubar/install_AmanobaMenubar.sh
 ```
 

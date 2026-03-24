@@ -2,13 +2,32 @@
 
 ## Current state
 
-This workspace is currently not attached to a Git repository, so `git status`, `git log`, and commit-based provenance are not available here.
+This workspace is attached to a Git repository:
 
-That means:
+- repository: `moldovancsaba/amanoba_courses`
+- remote: `https://github.com/moldovancsaba/amanoba_courses.git`
 
-- there is no trustworthy local branch name to report
-- there is no commit SHA to anchor documentation claims
-- runtime behavior must be verified from code, config, and live reports
+That means local provenance is available through normal Git commands such as:
+
+- `git status`
+- `git log`
+- `git rev-parse HEAD`
+
+## GitHub issue and planning source of truth
+
+Code lives in `moldovancsaba/amanoba_courses`, but issue planning does not.
+
+Use these as the authoritative planning sources:
+
+- issue repository: `moldovancsaba/mvp-factory-control`
+- project board: `https://github.com/users/moldovancsaba/projects/1`
+
+Operational rule:
+
+- do not assume the product repo issue tracker is the backlog
+- search, create, update, and manage `amanoba_courses` issues in `mvp-factory-control`
+- use the project board there as the planning SSOT
+- when documentation refers to backlog items, dependencies, ideabank cards, or delivery tracking, it refers to `mvp-factory-control`
 
 ## Operational source of truth
 
@@ -26,7 +45,7 @@ Use these as the authoritative sources for the current system state:
 Documentation in this project should describe:
 
 - the current code path
+- the current Git-backed workspace reality
 - the active config defaults
 - the actual launch-agent behavior
-
-It should not claim Git-backed provenance unless this workspace is reattached to a real repository.
+- the external planning SSOT in `mvp-factory-control`

@@ -21,6 +21,18 @@ If anything conflicts with these, **these win**:
 - `2026-course-creator-prompts.md`
 - `2026-course-quality-prompt.md`
 
+### GitHub planning SSOT
+For `amanoba_courses`, GitHub planning does **not** live in this repo.
+
+Use:
+- issue repository: `moldovancsaba/mvp-factory-control`
+- project board: `https://github.com/users/moldovancsaba/projects/1`
+
+Operational rule:
+- when searching existing product work, ideabank cards, priorities, dependencies, or roadmap items, look in `mvp-factory-control` first
+- when creating or updating issues for `amanoba_courses`, store them in `mvp-factory-control`
+- do not split the backlog between `amanoba_courses` issues and `mvp-factory-control` issues unless explicitly instructed
+
 ### Process rules
 - **No autonomous assumptions.** If scope is unclear (environment, courseId/ccsId, language(s), overwrite vs missing-only), stop and ask.
 - **Documentation = code.** If you change any behavior or workflow, update the relevant docs immediately.

@@ -29,7 +29,7 @@ After launch, open:
 Install:
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba-courses
+cd /Users/moldovancsaba/Projects/amanoba_courses
 bash tools/macos/AmanobaMenubar/install_AmanobaMenubar.sh
 ```
 
@@ -52,7 +52,7 @@ Menu app guide:
 ## Quick Start
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba-courses
+cd /Users/moldovancsaba/Projects/amanoba_courses
 ./start_amanoba.command
 ```
 
@@ -61,7 +61,7 @@ cd /Users/moldovancsaba/Projects/amanoba-courses
 Install or refresh restart-proof macOS launch agents:
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba-courses
+cd /Users/moldovancsaba/Projects/amanoba_courses
 bash scripts/install-course-quality-launchagents.sh
 ```
 
@@ -139,6 +139,24 @@ Source of truth:
 
 ## More Documentation
 
+- [`docs/current-ssot.md`](docs/current-ssot.md)
 - [`docs/local-course-quality-daemon.md`](docs/local-course-quality-daemon.md)
 - [`docs/local-runtime-evaluation.md`](docs/local-runtime-evaluation.md)
 - [`docs/system-versioning.md`](docs/system-versioning.md)
+- [`docs/create-a-course-handover.md`](docs/create-a-course-handover.md)
+
+## GitHub SSOT For Issues
+
+This repository is the product codebase, but GitHub issue planning and management do **not** live here.
+
+Use these as the operational issue SSOT:
+
+- issue repository: [`moldovancsaba/mvp-factory-control`](https://github.com/moldovancsaba/mvp-factory-control)
+- project board: [`MVP Factory Board`](https://github.com/users/moldovancsaba/projects/1)
+
+Rules:
+
+- search, create, update, and close product issues in `mvp-factory-control`
+- use the project board as the shared product planning surface
+- treat issue cards there as the authoritative backlog for `amanoba_courses`
+- do not create parallel planning issues in `moldovancsaba/amanoba_courses` unless explicitly requested
