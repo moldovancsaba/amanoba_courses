@@ -2,6 +2,23 @@ import AppKit
 import Foundation
 
 final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
+    private enum IndicatorState {
+        case idle
+        case working
+        case error
+
+        var title: String {
+            switch self {
+            case .idle:
+                return "⚪ AQ"
+            case .working:
+                return "🟢 AQ"
+            case .error:
+                return "🔴 AQ"
+            }
+        }
+    }
+
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
     private let productItem = NSMenuItem(title: "Amanoba v__APP_VERSION__", action: nil, keyEquivalent: "")
@@ -14,7 +31,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let button = statusItem.button else { return }
-        button.title = "AQ"
+        button.title = IndicatorState.idle.title
 
         productItem.isEnabled = false
         healthItem.isEnabled = false
@@ -75,7 +92,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
                     self.healthItem.title = "Health: dashboard down"
                     self.powerItem.title = "Power: unknown"
                     self.jobsItem.title = "Jobs: unknown"
-                    self.statusItem.button?.title = "AQ!"
+                    self.statusItem.button?.title = IndicatorState.error.title
                     return
                 }
 
@@ -90,7 +107,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
                 self.healthItem.title = "Health: dashboard up"
                 self.powerItem.title = "Power: \(mode)"
                 self.jobsItem.title = "Jobs: pending \(pending) | running \(running) | done \(completed) | failed \(failed)"
-                self.statusItem.button?.title = running > 0 ? "AQ*" : "AQ"
+                self.statusItem.button?.title = running > 0 ? IndicatorState.working.title : IndicatorState.idle.title
             }
         }
         task.resume()

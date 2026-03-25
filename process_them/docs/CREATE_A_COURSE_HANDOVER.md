@@ -1,5 +1,10 @@
 # CREATE_A_COURSE_HANDOVER — Amanoba (Idea → Outline → CCS → Course → Lessons → Quizzes → Publish)
 
+> Historical note:
+> This file is a legacy handover artifact under `process_them/` and is not the current runtime SSOT.
+> Use [docs/create-a-course-handover.md](/Users/moldovancsaba/Projects/amanoba_courses/docs/create-a-course-handover.md) for the current live handover flow.
+> Use [docs/local-course-quality-daemon.md](/Users/moldovancsaba/Projects/amanoba_courses/docs/local-course-quality-daemon.md) for the current QC runtime model.
+
 This document is the **single handover entrypoint** for any agent asked to create (or continue creating) a course on the Amanoba platform.
 
 If you follow this exactly, you will:

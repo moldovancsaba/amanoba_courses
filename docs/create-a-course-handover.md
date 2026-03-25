@@ -6,6 +6,20 @@ If you follow this exactly, you will:
 1) Resume the latest in-progress course run safely, **or**
 2) Start a new course from an idea and ship it to “ready to enroll” with strict quality gates.
 
+Current product-surface rule:
+
+- sovereign course creation now lives primarily in the local `amanoba_courses` browserview control center
+- the local UI surface is split into `Course Creator` and `Quality Control`
+- approved creator drafts enter the local QC queue from the `QC Review` stage and are improved there before any publish decision
+- `Draft To Live` now performs the full controlled downstream handoff:
+  - export a concrete local draft package
+  - import that package into Amanoba as draft/inactive
+  - publish it into Amanoba only on an explicit second action
+  - support rollback back to draft/inactive
+  - support deletion of the imported Amanoba draft from the local creator
+  - block final accept until those steps are complete
+- `amanoba.com` course management remains the downstream final/user page for tiny modifications after draft creation and QC
+
 ---
 
 ## 0) Non‑Negotiable Rules (read first)
@@ -15,6 +29,7 @@ If anything conflicts with these, **these win**:
 - `agent_working_loop_canonical_operating_document.md`
 - `docs/layout-grammar.md`
 - `docs/course-building-rules.md`
+- `docs/reference/sovereign-course-creator-compatibility-contract.md`
 - `docs/reference/course-creation-qa-playbook.md`
 - `docs/reference/quiz-quality-pipeline-handover.md`
 - `docs/reference/quiz-quality-pipeline-playbook.md`

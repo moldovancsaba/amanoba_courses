@@ -11,8 +11,8 @@
 
 Use this stack in order:
 
-1. `ollama` as the primary local rewrite backend.
-2. `mlx` as the secondary local rewrite backend.
+1. `mlx` as the primary local rewrite backend.
+2. `ollama` as the fallback local rewrite backend.
 
 Optional, not active in the default Amanoba runtime order:
 
@@ -30,10 +30,13 @@ The code still keeps an internal null provider as a guard rail, but it is not pa
 ## Sovereign patterns adopted
 
 - dashboard/ollama launchd `RunAtLoad` + `KeepAlive`
-- worker/watchdog launchd `RunAtLoad` + `StartInterval`
+- worker launchd `RunAtLoad` + `KeepAlive`
+- watchdog launchd `RunAtLoad` + `StartInterval`
 - dedicated worker and dashboard services
 - optional managed local `ollama` service
-- low-power Ollama defaults for continuous background rewriting
+- dedicated MLX interpreter for health checks and generation
+- watchdog-enforced primary writer policy for MLX/Apertus
+- low-power Ollama defaults for fallback background rewriting
 - confidence score + trust tier on queued and completed jobs
 - health snapshot for provider selection and dashboard display
 

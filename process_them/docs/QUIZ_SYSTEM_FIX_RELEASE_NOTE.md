@@ -1,5 +1,10 @@
 # 🎯 QUIZ SYSTEM COMPLETE FIX - RELEASE NOTE
 
+> Historical note:
+> This release note describes the 2026-01-25 delivery state only.
+> It is not the current runtime SSOT for Amanoba QC.
+> For the current live system, use [README.md](/Users/moldovancsaba/Projects/amanoba_courses/README.md), [docs/local-course-quality-daemon.md](/Users/moldovancsaba/Projects/amanoba_courses/docs/local-course-quality-daemon.md), and [docs/reference/quiz-quality-pipeline-handover.md](/Users/moldovancsaba/Projects/amanoba_courses/docs/reference/quiz-quality-pipeline-handover.md).
+
 **Entry point:** For current process and full doc list see **QUIZ_SYSTEM_HISTORY.md**. This file is the release note for the 2026-01-25 delivery.
 
 **Version**: v2.9.4  

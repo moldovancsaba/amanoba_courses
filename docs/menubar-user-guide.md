@@ -28,7 +28,11 @@ bash tools/macos/AmanobaMenubar/run_AmanobaMenubar.sh
 - `Power: gentle|balanced|fast`
 - `Jobs: pending | running | done | failed`
 
-When a job is running, the menu-bar title changes from `AQ` to `AQ*`.
+The menu-bar title uses simple color states:
+
+- `🟢 AQ` when QC work is running
+- `⚪ AQ` when the dashboard is healthy and no card is running
+- `🔴 AQ` when the dashboard health check fails
 
 ## Daily Actions
 
@@ -39,6 +43,7 @@ When a job is running, the menu-bar title changes from `AQ` to `AQ*`.
 - `Scan Workspace`
 
 The control center opens the kanban board where you can inspect completed cards in a modal and challenge a result back into the queue with a single comment.
+`Process One Job` does not create a second independent QC worker. It asks the live dashboard/daemon to advance the queue within the current single-worker model.
 
 ## Power Control
 
@@ -53,6 +58,13 @@ These actions call the dashboard power-mode API and persist the chosen mode to `
 - `Restart Services`
 - `Install/Refresh Services`
 - `Open Logs Folder`
+
+The underlying background model is:
+
+- one long-lived QC worker daemon
+- one dashboard service
+- one watchdog service
+- MLX/Apertus as the primary writer, with Ollama used only as fallback when MLX is unavailable
 
 ## Auto-Launch
 

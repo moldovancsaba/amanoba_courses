@@ -4,6 +4,19 @@ This document is a **general quality assurance checklist** to use every time a n
 
 It intentionally references the existing SSOT documents and the production-grade scripts already in this repo.
 
+Current execution surface:
+
+- sovereign course creation is being delivered in the local `amanoba_courses` browserview control center
+- the local UI currently implements staged artifacts for `Research`, `Blueprint`, `Lesson Generation`, `Quiz Generation`, `QC Review`, and `Draft To Live`
+- `QC Review` now injects creator-owned lesson/question drafts into the local QC queue at top priority
+- `Draft To Live` now:
+  - exports a v2 draft course package from the creator payload
+  - imports it into Amanoba as draft/inactive on explicit user action
+  - publishes it into Amanoba on a second explicit user action
+  - allows rollback to draft/inactive and deletion of the imported Amanoba draft from the local creator workflow
+  - blocks final acceptance until that downstream lifecycle is complete
+- `amanoba.com` remains the downstream final editing/publishing surface, not the primary sovereign creator workspace
+
 ---
 
 ## 0) Document Map (start here)
@@ -12,6 +25,7 @@ It intentionally references the existing SSOT documents and the production-grade
 - `agent_working_loop_canonical_operating_document.md` — repo operating rules (**rollback plan required for every delivery**).
 - `docs/layout-grammar.md` — structure/layout rules for lessons + quizzes.
 - `docs/course-building-rules.md` — course creation rules + quiz hard gates (0 recall, >=7 per lesson, language integrity).
+- `docs/reference/sovereign-course-creator-compatibility-contract.md` — authoritative live Amanoba mapping for sovereign course-creation artifacts.
 - `docs/reference/quiz-quality-pipeline-handover.md` — operational “how to run the pipeline”.
 - `docs/reference/quiz-quality-pipeline-playbook.md` — gold-standard question type + anti-patterns + commands + outputs.
 - `2026-course-creator-prompts.md` — prompts + artifacts for **Idea → Outline → CCS → Create Course**.

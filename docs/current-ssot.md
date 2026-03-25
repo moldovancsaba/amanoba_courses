@@ -24,6 +24,68 @@ The active runtime truth for the local quality system is:
 - `.course-quality/reports/feed.json`
 - `.course-quality/reports/watchdog.json`
 
+The active local product surface is the browserview control center at:
+
+- `http://127.0.0.1:8765`
+
+Current local pages:
+
+- `Course Creator`
+- `Quality Control`
+
+Current creator page model:
+
+- the local `Course Creator` page is a kanban-style stage pipeline
+- runs are displayed in stage columns instead of only a flat list
+- the stage columns are:
+  - `Research`
+  - `Blueprint`
+  - `Lessons`
+  - `Quizzes`
+  - `QC Review`
+  - `Draft To Live`
+  - `Done`
+- the research source pack is CRUD-capable inside the local creator modal
+- the source pack also supports user review states:
+  - `preferred`
+  - `neutral`
+  - `rejected`
+- source review state persists across source refresh
+- the creator modal is stage-focused:
+  - research review shows the research brief and curated sources only
+  - blueprint review shows one outline day at a time
+  - lesson review shows one lesson at a time
+  - quiz review shows one question at a time
+  - QC review starts as `QC Setup` until the handoff exists, then shows QC progress state
+  - draft-to-live review shows only release/package/import/publish state
+- the modal does not repeat the full pipeline stage list once the run is opened
+- raw artifact editing is hidden by default and is exposed only by explicit user action
+- setup and release states hide irrelevant controls until they are valid
+
+Current delivered creator handoff:
+
+- approved creator drafts enter the local QC queue during `QC Review`
+- creator QC tasks are top-priority local draft tasks, not live Amanoba DB mutations
+- completed creator QC results are written back into the creator run payload
+- `Draft To Live` now includes the full downstream gate:
+  - export local v2 draft package
+  - import package into Amanoba as draft/inactive
+  - publish the imported draft on explicit user action
+  - rollback the published course back to draft/inactive if needed
+  - delete the imported Amanoba draft if the downstream handoff must be removed
+  - only then allow final local acceptance
+  - present creator controls in lifecycle-aware UX groups:
+    - `Stage Workflow`
+    - `Downstream Release`
+    - `Recovery Controls`
+  - show creator run readiness badges on the run cards before the user opens a run
+  - show a `Lifecycle Checklist` and `What Happens Next` banner in the local creator modal
+  - show explicit stage-risk messaging and readiness summaries for:
+    - decision risk
+    - QC readiness
+    - release readiness
+  - disable actions until their stage or lifecycle prerequisites are satisfied
+
 ## GitHub planning and backlog
 
 GitHub issue planning for `amanoba_courses` does **not** live in the product repository.
@@ -57,6 +119,7 @@ For lesson and quiz content:
 
 - live system compatibility is defined by `/Users/moldovancsaba/Projects/amanoba`
 - canonical content/course standards remain in this repo under `docs/`
+- sovereign course-creator compatibility is defined in `docs/reference/sovereign-course-creator-compatibility-contract.md`
 - when there is a conflict, the current application behavior plus the explicitly designated SSOT docs win
 
 ## Working rule

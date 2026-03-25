@@ -10,7 +10,7 @@ if [ ! -f "course_quality_daemon.json" ] || [ ! -d "course_quality_daemon" ]; th
   echo "This launcher must run from the Amanoba project folder."
   echo "Expected course_quality_daemon.json and course_quality_daemon/ were not found in: $ROOT_DIR"
   echo "Run this file instead:"
-  echo "  /Users/moldovancsaba/Projects/amanoba-courses/start_amanoba.command"
+  echo "  /Users/moldovancsaba/Projects/amanoba_courses/start_amanoba.command"
   exit 1
 fi
 

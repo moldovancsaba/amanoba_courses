@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-ROOT="${AMANOBA_COURSES_ROOT:-/Users/moldovancsaba/Projects/amanoba-courses}"
+ROOT="${AMANOBA_COURSES_ROOT:-/Users/moldovancsaba/Projects/amanoba_courses}"
 CONFIG_PATH="${AMANOBA_CONFIG_PATH:-$ROOT/course_quality_daemon.json}"
 LAUNCH_DIR="$HOME/Library/LaunchAgents"
 LOG_DIR="$ROOT/.course-quality/launchd"
@@ -37,10 +37,11 @@ cat > "$WORKER_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$ROOT/.venv-mlx/bin/python</string>
 <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 </dict>
 <key>RunAtLoad</key><true/>
-<key>StartInterval</key><integer>$WORKER_INTERVAL</integer>
+<key>KeepAlive</key><true/>
 <key>StandardOutPath</key><string>$LOG_DIR/worker.out.log</string>
 <key>StandardErrorPath</key><string>$LOG_DIR/worker.err.log</string>
 </dict></plist>
@@ -54,6 +55,7 @@ cat > "$DASHBOARD_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$ROOT/.venv-mlx/bin/python</string>
 <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 </dict>
 <key>RunAtLoad</key><true/>
@@ -71,6 +73,7 @@ cat > "$WATCHDOG_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$ROOT/.venv-mlx/bin/python</string>
 <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 </dict>
 <key>RunAtLoad</key><true/>

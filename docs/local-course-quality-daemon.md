@@ -28,14 +28,19 @@ This tool gives you a local, continuous worker that:
 
 The worker now supports provider selection in this order by default:
 
-1. `ollama`
-2. `mlx`
+1. `mlx`
+2. `ollama`
 
 That means:
 
-- local `ollama` is used first for stable unattended queue work,
-- local MLX Apertus stays available as a secondary installed runtime,
-- Ollama runs with a low-power profile by default (`temperature 0.1`, `num_predict 384`, `num_ctx 2048`, `num_thread 2`),
+- local MLX/Apertus is the primary unattended writer path,
+- Ollama is used only as fallback when MLX is unavailable or temporarily cooled down after repeated runtime failures,
+- MLX runs through the dedicated [`.venv-mlx/bin/python`](/Users/moldovancsaba/Projects/amanoba_courses/.venv-mlx/bin/python) interpreter,
+- the watchdog enforces MLX as the primary writer and treats fallback mode as a repairable incident,
+- Ollama model-level timeout fallback is still used when the Ollama primary/fallback chain is active,
+- Ollama runs with a low-power profile by default when it is used as fallback (`temperature 0.1`, `num_predict 384`, `num_ctx 2048`, `num_thread 2`),
+- the dashboard power summary now also shows the effective lesson rewrite token budget,
+- rewrite calls fail over across configured providers instead of waiting forever on the first healthy provider,
 - if there is no internet or no API key, queueing and dashboard still work,
 - auto-rewrite falls back only if a real provider is actually available.
 
@@ -48,7 +53,7 @@ The job feed is split into four buckets:
 - `queued` — work that is coming next
 - `running` — the item currently being processed
 - `completed` — most recently finished jobs
-- `failed` — the Failed lane, which includes retry-failed, quarantined, and terminally failed jobs
+- `failed/quarantined review` — visible problem cases that still need inspection or human action
 
 Each entry contains the course, lesson, question or lesson target, timestamps, attempts, last error, and a Sovereign-style confidence/trust-tier judgement.
 
@@ -84,26 +89,112 @@ http://127.0.0.1:8765
 
 The dashboard lets you:
 
+- switch between `Course Creator` and `Quality Control` from the left rail,
+- create sovereign course-creator runs from `topic`, `target language`, and `research mode`,
+- generate and edit stage artifacts inside the creator modal,
 - watch queued, running, completed, failed, and archived jobs in kanban columns,
 - inspect provider health,
 - switch power mode between `gentle`, `balanced`, and `fast`,
 - trigger a new scan,
-- process one job manually,
+- watch the single long-lived QC worker progress,
 - open a card in a modal to inspect before/after content,
 - challenge a completed result with one comment so it goes back to `Coming Up`,
 - search archived completed jobs directly from the local SQLite state.
 
-The manual `run-once` action now returns immediately and only sends a compact summary payload back to the browser. The actual rewrite continues in the background.
-The dashboard starts manual work by spawning a separate one-shot Python process, not an in-process thread, so long lesson rewrites cannot block the web request or freeze the control center.
-All worker entrypoints also share a filesystem lock at `.course-quality/process.lock`, so only one `run-once` or daemon process can own the queue at a time.
+Creator UX behavior:
+
+- `Course Creator` and `Quality Control` are separate left-rail pages
+- the `Course Creator` page uses a kanban-style pipeline so the user can see where each run currently sits
+- creator columns are:
+  - `Research`
+  - `Blueprint`
+  - `Lessons`
+  - `Quizzes`
+  - `QC Review`
+  - `Draft To Live`
+  - `Done`
+- creator run cards expose readiness badges before the user opens a run:
+  - stage state
+  - QC state
+  - release state
+- creator actions are split into three explicit groups:
+  - `Stage Workflow`
+  - `Downstream Release`
+  - `Recovery Controls`
+- the creator modal shows a `Lifecycle Checklist` for stage and release readiness
+- the creator modal shows `What Happens Next` so the user can understand the next valid action without guessing
+- the creator modal shows a stage-specific warning so the approval risk is explicit
+- artifact summaries now call out:
+  - decision risk
+  - QC readiness
+  - release readiness
+- the creator modal is stage-focused by default:
+  - `Research` shows the research brief and source pack only
+  - `Blueprint` shows one outline day at a time
+  - `Lesson Generation` shows one lesson at a time
+  - `Quiz Generation` shows one question at a time
+  - `QC Review` starts as `QC Setup` until creator QC tasks exist, then switches into live QC progress
+  - `Draft To Live` shows release state only
+- the modal does not repeat the full stage list, because the kanban column already provides the run position
+- raw artifact editing is hidden by default and appears only after the user selects `Show Edit Panel`
+- setup and release states hide invalid controls until they become relevant
+- buttons are state-aware and disabled when a stage or lifecycle precondition is not satisfied
+- destructive recovery actions are visually separated from publish actions
+
+The QC system now runs as a single long-lived daemon process under launchd.
+The dashboard does not own a second in-process worker thread, and the queue is guarded by `.course-quality/process.lock`, so only one QC worker process can own execution at a time.
 
 Kanban column behavior:
 
 - `Coming Up`: pending tasks that have not been processed yet
 - `Active Now`: currently running task
 - `Done`: last 10 completed tasks
-- `Failed`: last 10 visible problem tasks, including retry-failed, quarantined, and terminal failures
+- `Failed`: last 10 visible problem tasks, including quarantined and terminal failure cases
 - `Archived`: older completed tasks, plus searchable completed history
+
+Creator stage behavior:
+
+- `Research`: source-aware research brief with visible source pack
+- the source pack is user-managed inside the local creator modal:
+  - add source
+  - edit source
+  - delete source
+  - refresh source pack from research
+- each source can also be marked as:
+  - `preferred`
+  - `neutral`
+  - `rejected`
+- source preference and rejection survive source refresh
+- the artifact summary exposes a `Grounding Basis` view so the user can see how much curated evidence is attached
+- `Blueprint`: 30-day architecture derived from the approved research artifact
+- `Lesson Generation`: 30-day lesson draft batch derived from the approved blueprint
+- `Quiz Generation`: quiz draft batch derived from the approved lesson batch
+- `QC Review`: injects approved creator lesson/question drafts into the local QC queue at top priority
+- `Draft To Live`: final human gate with a QC-readiness summary, exportable draft package, explicit Amanoba draft import, explicit live publish control, and downstream rollback/delete controls
+
+Checkpoint gates are enforced inside the local workflow:
+
+- blueprint generation requires approved research
+- lesson generation requires approved blueprint
+- quiz generation requires approved lesson generation
+- QC Review generation requires approved quiz generation
+- QC Review acceptance requires all injected creator QC tasks to be completed with no failed/quarantined creator QC tasks remaining
+- Draft To Live acceptance requires:
+  - an exported draft package
+  - an explicit draft import into Amanoba
+  - an explicit live publish action in Amanoba
+- if the user rolls back or deletes the downstream Amanoba course, the local creator run reopens at `Draft To Live`
+
+UX rule:
+
+- the UI must only present actions that match the current lifecycle state
+- the user keeps explicit control over every irreversible step:
+  - stage acceptance
+  - draft export
+  - Amanoba draft import
+  - live publish
+  - rollback
+  - delete import
 
 ## Background services
 
@@ -130,10 +221,10 @@ Service behavior:
 
 - `dashboard` uses `RunAtLoad` and `KeepAlive`
 - `ollama` uses `RunAtLoad` and `KeepAlive`
-- `worker` uses `RunAtLoad` and `StartInterval`
+- `worker` uses `RunAtLoad` and `KeepAlive`
 - `watchdog` uses `RunAtLoad` and `StartInterval`
 
-That means the UI/runtime services stay resident, while the worker and watchdog are relaunched on schedule and at login.
+That means the UI/runtime services stay resident, the worker stays up continuously, and the watchdog is relaunched on schedule and at login.
 The worker is also started with `nice -n 10` so it runs continuously at lower scheduler priority.
 
 ## Watchdog
@@ -147,18 +238,22 @@ It is intentionally not the main worker. Its only job is orchestration and repai
 - runs as a fresh launchd cycle every `watchdog.check_interval_seconds`
 - performs a full service kickstart every `watchdog.full_restart_interval_seconds`
 - kills stale `run-once` worker processes
+- kills stuck `course_quality_daemon.mlx_worker` subprocesses when MLX has fallen into a bad state
 - clears stale `.course-quality/process.lock`
 - recovers tasks left in `running`
-- restarts dashboard if `/api/health` is not reachable
+- restarts dashboard if `/api/healthz` is not reachable
 - restarts Ollama if the local endpoint is down
 - kickstarts the worker when queue execution is not progressing
+- checks both the watchdog runtime snapshot and the dashboard runtime snapshot
+- treats `selected provider != mlx` as an incident when MLX is available
+- restarts the worker/dashboard so MLX becomes the selected provider again
 - writes its own report to `.course-quality/reports/watchdog.json`
 
 Timeout and repeated-bounce policy:
 
 - every timeout is classified into a structured RCA record on the task
 - timeout incidents immediately trigger a watchdog cycle
-- that watchdog cycle checks worker/dashboard/Ollama health, clears stale locks, kills stale worker runs, and kickstarts recovery
+- that watchdog cycle checks worker/dashboard/Ollama health, clears stale locks, kills stale worker runs, repairs MLX runtime issues, and kickstarts recovery
 - if the same card bounces back twice, it is moved to `quarantined`
 - quarantined cards stay visible in the `Failed` lane with human review required
 - the modal feedback history receives a system note so a human can challenge or inspect it directly
@@ -226,8 +321,10 @@ The live bridge calls are hard-timed:
 - scan/fetch/apply/mark-reviewed fail fast after `live.bridge_timeout_seconds`
 - timed-out bridge calls return an explicit task error instead of hanging the queue forever
 - each task execution is also hard-capped by `max_task_runtime_seconds`
-- timed-out lesson/question runs become failed or retry-failed tasks instead of staying `running`
+- timed-out lesson/question runs are recorded with RCA and moved out of `running`
 - repeated timeout/retry bounce-backs are quarantined after `watchdog.quarantine_after_failures`
+- obviously poor lessons now skip the wasteful normal-rewrite-first path and go straight to reconstruction
+- task detail can include provider timing traces so slow providers are visible in the UI
 
 ## Local versioning
 
@@ -250,12 +347,12 @@ GitHub issue planning source of truth is separate:
 
 ## Recommended rollout
 
-- Make sure `ollama` has a local model pulled.
-- Run a few `run-once --max-items 1` cycles and inspect the rewritten output.
+- Make sure MLX/Apertus is installed in [`.venv-mlx`](/Users/moldovancsaba/Projects/amanoba_courses/.venv-mlx) and `ollama` has its fallback models pulled.
+- Run the dashboard and inspect a few real rewritten outputs while MLX is selected as the writer.
 - When the outputs are stable, install the launch agents and leave the system running in the background.
 - Keep `idle_sleep_seconds` and `post_task_sleep_seconds` non-zero so the worker remains gentle on the machine.
-- If you want strict 5-minute cadence, set `queue_check_interval_seconds` to `300`. The daemon will check every 5 minutes whether any task is already `running`; if none is active, it starts exactly one next queued task.
+- If you want a gentler or more aggressive scan cadence, tune `queue_check_interval_seconds`, `idle_sleep_seconds`, and the watchdog intervals in `course_quality_daemon.json`.
 
 Current known hard failure mode to watch:
 
-- if a lesson rewrite provider returns article/blog/webpage/schema.org JSON instead of Amanoba lesson JSON, the daemon rejects it and the card returns to `Failed` / `retry-failed`
+- if a lesson rewrite provider returns article/blog/webpage/schema.org JSON instead of Amanoba lesson JSON, the daemon rejects it and the card stays visible for review or quarantine instead of silently looping
