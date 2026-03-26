@@ -40,11 +40,58 @@ This version is portable. It does not assume a fixed home directory. Substitute 
 - `ollama`
 - `mlx_lm`
 
+## Runtime Choice
+
+Use these runtimes for the production stack:
+
+- resident creator roles: MLX via `mlx_lm`
+- queue / workflow / dashboard / watchdog: Python
+- fallback generation: Ollama
+
+Do not replace the resident creator roles with a remote API. The production-safe setup keeps the three creator roles local and warm.
+
 ## Required Models
 
 - `DRAFTER: Gemma 3 270M`
 - `WRITER: Granite 4.0 350M (H-variant)`
 - `JUDGE: Qwen 2.5 0.5B`
+
+## Model Acquisition
+
+If the resident MLX models are missing, install the download tooling and fetch the exact MLX repos used by the runtime:
+
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade huggingface_hub mlx-lm
+```
+
+Then download the model repos:
+
+```bash
+huggingface-cli download mlx-community/gemma-3-270m-it-4bit
+huggingface-cli download mlx-community/granite-4.0-h-350m-8bit
+huggingface-cli download mlx-community/Qwen2.5-0.5B-Instruct-4bit
+```
+
+Resolve the downloaded snapshot paths:
+
+```bash
+find "$HOME/.cache/huggingface/hub" -path '*/models--mlx-community--gemma-3-270m-it-4bit/snapshots/*' -type d | sort | tail -n 1
+find "$HOME/.cache/huggingface/hub" -path '*/models--mlx-community--granite-4.0-h-350m-8bit/snapshots/*' -type d | sort | tail -n 1
+find "$HOME/.cache/huggingface/hub" -path '*/models--mlx-community--Qwen2.5-0.5B-Instruct-4bit/snapshots/*' -type d | sort | tail -n 1
+```
+
+If the downloaded snapshot paths differ from the paths currently referenced in `course_quality_daemon.json`, update the config to the actual downloaded snapshot directories before starting the stack.
+
+If the machine is supposed to use the Ollama fallback, pull the fallback models too:
+
+```bash
+ollama pull llama3.2:3b
+ollama pull qwen2.5:3b
+ollama pull llama3.2:1b
+```
+
+If the machine already has these models, verify the cache paths and skip re-downloading.
 
 ## Source of Truth
 
@@ -91,18 +138,21 @@ rg -n "MONGODB_URI|DB_NAME=amanoba|OPENAI_API_KEY" .env.local
 
 1. Sync the repo.
 2. Read the SSOT docs.
-3. Pull `.env.local` from Vercel.
-4. Verify the environment variables.
-5. Install dependencies if needed.
-6. Install or refresh launch agents.
-7. Install or refresh the menubar.
-8. Start the QC stack.
-9. Verify the resident models.
-10. Verify the dashboard.
-11. Verify the worker and watchdog.
-12. Keep the system awake.
-13. Fix any mismatch between docs and runtime.
-14. Commit and push the final state to `origin/main`.
+3. Install or verify the tools.
+4. Download or verify the resident MLX models.
+5. Download or verify the Ollama fallback models.
+6. Pull `.env.local` from Vercel.
+7. Verify the environment variables.
+8. Install dependencies if needed.
+9. Install or refresh launch agents.
+10. Install or refresh the menubar.
+11. Start the QC stack.
+12. Verify the resident models.
+13. Verify the dashboard.
+14. Verify the worker and watchdog.
+15. Keep the system awake.
+16. Fix any mismatch between docs and runtime.
+17. Commit and push the final state to `origin/main`.
 
 ## Commands in Exact Order
 
@@ -129,7 +179,39 @@ sed -n '1,220p' docs/reference/quiz-quality-pipeline-playbook.md
 sed -n '1,220p' docs/reference/course-creation-qa-playbook.md
 ```
 
-### 3. Bootstrap environment from Vercel
+### 3. Install or verify tools
+
+```bash
+python3 --version
+node --version
+npm --version
+rg --version
+swiftc --version
+command -v ollama
+python3 -m pip show mlx-lm
+python3 -m pip show huggingface_hub
+```
+
+### 4. Download or verify MLX models
+
+```bash
+python3 -m pip install --upgrade huggingface_hub mlx-lm
+huggingface-cli download mlx-community/gemma-3-270m-it-4bit
+huggingface-cli download mlx-community/granite-4.0-h-350m-8bit
+huggingface-cli download mlx-community/Qwen2.5-0.5B-Instruct-4bit
+```
+
+If the snapshot paths in `course_quality_daemon.json` do not match the downloaded cache, update the config to the actual snapshot directories before starting the stack.
+
+### 5. Download or verify Ollama fallback models
+
+```bash
+ollama pull llama3.2:3b
+ollama pull qwen2.5:3b
+ollama pull llama3.2:1b
+```
+
+### 6. Bootstrap environment from Vercel
 
 ```bash
 cd "<USER_HOME>/Projects/amanoba"
@@ -145,20 +227,20 @@ Then confirm:
 rg -n "MONGODB_URI|DB_NAME=amanoba|OPENAI_API_KEY" .env.local
 ```
 
-### 4. Install dependencies
+### 7. Install dependencies
 
 ```bash
 cd "<USER_HOME>/Projects/amanoba"
 npm install
 ```
 
-### 5. Install launch agents
+### 8. Install launch agents
 
 ```bash
 bash scripts/install-course-quality-launchagents.sh
 ```
 
-### 6. Install the menubar
+### 9. Install the menubar
 
 ```bash
 bash tools/macos/AmanobaMenubar/install_AmanobaMenubar.sh
@@ -167,7 +249,7 @@ open "$HOME/Applications/AmanobaMenubar.app"
 
 If the menubar looks stale, rerun the installer from the current checkout. The installer must replace the old bundle instead of layering on top of it.
 
-### 7. Verify services
+### 10. Verify services
 
 ```bash
 launchctl print gui/$UID/com.amanoba.coursequality.worker
@@ -176,14 +258,14 @@ launchctl print gui/$UID/com.amanoba.coursequality.watchdog
 launchctl print gui/$UID/com.amanoba.coursequality.ollama
 ```
 
-### 8. Verify resident models
+### 11. Verify resident models
 
 - Check `http://127.0.0.1:8080`
 - Check `http://127.0.0.1:8081`
 - Check `http://127.0.0.1:8082`
 - Confirm the dashboard shows the compact `Model Roster`
 
-### 9. Verify worker progress
+### 12. Verify worker progress
 
 - Confirm the worker is working
 - Confirm `pending` decreases over time
@@ -191,7 +273,7 @@ launchctl print gui/$UID/com.amanoba.coursequality.ollama
 - Confirm the worker does not freeze on one lesson
 - Confirm the watchdog repairs stalls instead of leaving the worker wedged
 
-### 10. Verify menubar behavior
+### 13. Verify menubar behavior
 
 - Menubar version must show `Amanoba v0.2.0`
 - Menu must show only:
@@ -203,17 +285,17 @@ launchctl print gui/$UID/com.amanoba.coursequality.ollama
 - No `Open Health JSON`
 - No long filesystem paths in visible labels
 
-### 11. Keep the machine awake
+### 14. Keep the machine awake
 
 Run the stack under `caffeinate` or equivalent launch-managed awake behavior so the Mac does not sleep while Amanoba is live.
 
-### 12. Fix any mismatch
+### 15. Fix any mismatch
 
 - Update docs if the code/runtime changed.
 - Update code if the docs reflect the intended live runtime and the implementation drifted.
 - Remove stale bundles or stale references.
 
-### 13. Commit and push
+### 16. Commit and push
 
 ```bash
 git status --short
