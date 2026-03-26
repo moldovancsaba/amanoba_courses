@@ -146,7 +146,7 @@ Therefore:
 
 For lesson and quiz content:
 
-- live system compatibility is defined by `/Users/moldovancsaba/Projects/amanoba`
+- live system compatibility is defined by `/Users/chappie/Projects/amanoba`
 - canonical content/course standards remain in this repo under `docs/`
 - sovereign course-creator compatibility is defined in `docs/reference/sovereign-course-creator-compatibility-contract.md`
 - when there is a conflict, the current application behavior plus the explicitly designated SSOT docs win

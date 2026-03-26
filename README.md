@@ -187,10 +187,12 @@ Live bridge dependency:
 
 - the worker bridge is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
 - fresh-machine live app bootstrap uses:
+  - `cd /Users/chappie/Projects/amanoba`
   - `vercel login`
   - `vercel link --yes --scope narimato --project amanoba`
   - `vercel env ls`
   - `vercel env pull .env.local --yes`
+  - `npm install`
 - live queue advancement still requires a real `MONGODB_URI` and `DB_NAME="amanoba"` in `/Users/chappie/Projects/amanoba/.env.local`
 - when that secret is missing, the worker correctly reports `waiting-dependency`
 
@@ -296,7 +298,7 @@ Source of truth:
 
 - [`docs/amanoba-course-content-standard-v1-0.md`](docs/amanoba-course-content-standard-v1-0.md)
 - [`docs/course-package-format.md`](docs/course-package-format.md)
-- [`/Users/moldovancsaba/Projects/amanoba/app/lib/lesson-content.ts`](/Users/moldovancsaba/Projects/amanoba/app/lib/lesson-content.ts)
+- [`/Users/chappie/Projects/amanoba/app/lib/lesson-content.ts`](/Users/chappie/Projects/amanoba/app/lib/lesson-content.ts)
 
 ## More Documentation
 

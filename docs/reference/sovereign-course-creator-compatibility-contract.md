@@ -1,6 +1,6 @@
 # Sovereign Course Creator Compatibility Contract
 
-This document defines the compatibility contract between the future sovereign course-creation workflow in `amanoba_courses` and the live Amanoba application in `/Users/moldovancsaba/Projects/amanoba`.
+This document defines the compatibility contract between the future sovereign course-creation workflow in `amanoba_courses` and the live Amanoba application in `/Users/chappie/Projects/amanoba`.
 
 It is the implementation artifact for:
 
@@ -19,7 +19,7 @@ Applies to: **Amanoba v0.2.0**.
 
 ## Ownership and SSOT
 
-- **Compatibility SSOT:** this contract plus the live Amanoba application behavior in `/Users/moldovancsaba/Projects/amanoba`
+- **Compatibility SSOT:** this contract plus the live Amanoba application behavior in `/Users/chappie/Projects/amanoba`
 - **Runtime version:** `Amanoba v0.2.0`
 
 ## Purpose
@@ -38,7 +38,7 @@ This contract exists so later stages do not reinterpret the live application ind
 The sovereign course creator must align with these live entities:
 
 1. `CCS`
-- model: `/Users/moldovancsaba/Projects/amanoba/app/lib/models/ccs.ts`
+- model: `/Users/chappie/Projects/amanoba/app/lib/models/ccs.ts`
 - purpose: course-family record
 - canonical fields:
   - `ccsId`
@@ -48,7 +48,7 @@ The sovereign course creator must align with these live entities:
   - `relatedDocuments`
 
 2. `Course`
-- model: `/Users/moldovancsaba/Projects/amanoba/app/lib/models/course.ts`
+- model: `/Users/chappie/Projects/amanoba/app/lib/models/course.ts`
 - purpose: a language-variant course or child/short course
 - canonical fields for the sovereign creator:
   - `courseId`
@@ -71,7 +71,7 @@ The sovereign course creator must align with these live entities:
   - `lessonQuizPolicy`
 
 3. `Lesson`
-- model: `/Users/moldovancsaba/Projects/amanoba/app/lib/models/lesson.ts`
+- model: `/Users/chappie/Projects/amanoba/app/lib/models/lesson.ts`
 - purpose: one day lesson within a course
 - canonical fields:
   - `lessonId`
@@ -92,7 +92,7 @@ The sovereign course creator must align with these live entities:
   - `metadata`
 
 4. `QuizQuestion`
-- model: `/Users/moldovancsaba/Projects/amanoba/app/lib/models/quiz-question.ts`
+- model: `/Users/chappie/Projects/amanoba/app/lib/models/quiz-question.ts`
 - purpose: course-specific or reusable question storage
 - canonical fields for sovereign course creation:
   - `question`
@@ -119,25 +119,25 @@ The sovereign course creator must align with these live entities:
 The compatibility contract must stay aligned with these behaviors:
 
 1. Lesson content format
-- source: `/Users/moldovancsaba/Projects/amanoba/app/lib/lesson-content.ts`
+- source: `/Users/chappie/Projects/amanoba/app/lib/lesson-content.ts`
 - canonical storage is Markdown
 - legacy HTML may exist
 - rendering uses `contentToHtml`
 - import/export normalization uses `contentToMarkdown`
 
 2. Course creation and editing
-- source: `/Users/moldovancsaba/Projects/amanoba/app/api/admin/courses/route.ts`
+- source: `/Users/chappie/Projects/amanoba/app/api/admin/courses/route.ts`
 - `courseId` must match `^[A-Z0-9_]+$`
 - `language` is stored lowercase
 - `ccsId` must be uppercase/underscore-safe if present
 
 3. Question creation and filtering
-- source: `/Users/moldovancsaba/Projects/amanoba/app/api/admin/questions/route.ts`
+- source: `/Users/chappie/Projects/amanoba/app/api/admin/questions/route.ts`
 - language is currently inferred operationally through hashtags
 - admin creation path validates question/options/correctIndex structure
 
 4. Package import path
-- source: `/Users/moldovancsaba/Projects/amanoba/app/api/admin/courses/import/route.ts`
+- source: `/Users/chappie/Projects/amanoba/app/api/admin/courses/import/route.ts`
 - import accepts course plus lessons package data
 - lesson content is accepted as stored content and later rendered via lesson-content helpers
 - import merges into existing records when overwrite is enabled

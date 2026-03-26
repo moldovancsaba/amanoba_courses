@@ -69,10 +69,12 @@ The live Amanoba app at `/Users/chappie/Projects/amanoba` is linked to Vercel pr
 
 Fresh-machine bootstrap order:
 
-1. `vercel login`
-2. `vercel link --yes --scope narimato --project amanoba`
-3. `vercel env ls`
-4. `vercel env pull .env.local --yes`
+1. `cd /Users/chappie/Projects/amanoba`
+2. `vercel login`
+3. `vercel link --yes --scope narimato --project amanoba`
+4. `vercel env ls`
+5. `vercel env pull .env.local --yes`
+6. `npm install`
 
 Required live env truth:
 
@@ -106,8 +108,8 @@ Canonical references:
 
 - `docs/amanoba-course-content-standard-v1-0.md`
 - `docs/course-package-format.md`
-- `/Users/moldovancsaba/Projects/amanoba/app/lib/lesson-content.ts`
-- `/Users/moldovancsaba/Projects/amanoba/app/lib/models/lesson.ts`
+- `/Users/chappie/Projects/amanoba/app/lib/lesson-content.ts`
+- `/Users/chappie/Projects/amanoba/app/lib/models/lesson.ts`
 
 ## Dashboard
 
@@ -274,6 +276,7 @@ Live bridge dependency note:
 
 - the worker bridge is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
 - `tsx --env-file=.env.local` requires `/Users/chappie/Projects/amanoba/.env.local` to exist
+- `tsx --env-file=.env.local` also requires `/Users/chappie/Projects/amanoba/node_modules/.bin/tsx` from `npm install`
 - actual live queue processing still requires a valid `MONGODB_URI`
 
 ## Watchdog
@@ -350,7 +353,7 @@ python3 -m course_quality_daemon --config course_quality_daemon.json dashboard
 The default config in this repo is now live-DB mode:
 
 - `source_mode: amanoba_live_db`
-- `live.app_root: /Users/moldovancsaba/Projects/amanoba`
+- `live.app_root: /Users/chappie/Projects/amanoba`
 - `live.bridge_script: scripts/course-quality-live-bridge.ts`
 - `live.bridge_timeout_seconds: 120`
 

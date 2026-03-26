@@ -120,10 +120,12 @@ The short labels are deliberate. The interface does not show long filesystem pat
 
 - install or refresh launch agents with `bash scripts/install-course-quality-launchagents.sh`
 - bootstrap the live Amanoba app with:
+  - `cd /Users/chappie/Projects/amanoba`
   - `vercel login`
   - `vercel link --yes --scope narimato --project amanoba`
   - `vercel env ls`
   - `vercel env pull .env.local --yes`
+  - `npm install`
 - keep the Mac awake with the launch-managed `caffeinate` service
 - use the dashboard and menubar as operator surfaces, not as debugging consoles
 
@@ -153,9 +155,9 @@ The short labels are deliberate. The interface does not show long filesystem pat
 
 If you are installing the QC system on a new machine, recreate the local env file from the linked Vercel project before starting the services.
 
-Required local file:
+Required live app file:
 
-- `.env.local`
+- `/Users/chappie/Projects/amanoba/.env.local`
 
 Minimum required values:
 
@@ -166,18 +168,21 @@ Minimum required values:
 Bootstrap commands:
 
 ```bash
+cd /Users/chappie/Projects/amanoba
 vercel login
-vercel link
+vercel link --yes --scope narimato --project amanoba
 vercel env ls
-vercel env pull .env.local
+vercel env pull .env.local --yes
+npm install
 ```
 
 Then:
 
-1. Verify `.env.local` contains `MONGODB_URI` and `DB_NAME`.
+1. Verify `/Users/chappie/Projects/amanoba/.env.local` contains `MONGODB_URI` and `DB_NAME`.
 2. Install or refresh the launch agents.
 3. Start the dashboard, worker, and watchdog.
-4. Confirm the resident roles are up on `8080`, `8081`, and `8082`.
+4. Confirm `/Users/chappie/Projects/amanoba/node_modules/.bin/tsx` exists.
+5. Confirm the resident roles are up on `8080`, `8081`, and `8082`.
 
 ## Menubar Reset If It Looks Different
 

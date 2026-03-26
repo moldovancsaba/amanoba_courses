@@ -73,10 +73,12 @@ Required env values:
 Use Vercel as the source of truth:
 
 ```bash
+cd "<USER_HOME>/Projects/amanoba"
 vercel login
-vercel link
+vercel link --yes --scope narimato --project amanoba
 vercel env ls
-vercel env pull .env.local
+vercel env pull .env.local --yes
+npm install
 ```
 
 Then verify:
@@ -108,6 +110,7 @@ rg -n "MONGODB_URI|DB_NAME=amanoba|OPENAI_API_KEY" .env.local
 
 ```bash
 cd "<USER_HOME>/Projects/amanoba_courses"
+git fetch --all --prune
 git checkout main
 git pull --rebase origin main
 ```
@@ -129,10 +132,11 @@ sed -n '1,220p' docs/reference/course-creation-qa-playbook.md
 ### 3. Bootstrap environment from Vercel
 
 ```bash
+cd "<USER_HOME>/Projects/amanoba"
 vercel login
-vercel link
+vercel link --yes --scope narimato --project amanoba
 vercel env ls
-vercel env pull .env.local
+vercel env pull .env.local --yes
 ```
 
 Then confirm:
@@ -144,6 +148,7 @@ rg -n "MONGODB_URI|DB_NAME=amanoba|OPENAI_API_KEY" .env.local
 ### 4. Install dependencies
 
 ```bash
+cd "<USER_HOME>/Projects/amanoba"
 npm install
 ```
 
