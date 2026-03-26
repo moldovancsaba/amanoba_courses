@@ -65,6 +65,10 @@ User manual:
 
 - [`docs/user-manual.md`](docs/user-manual.md)
 
+Mac mini handoff:
+
+- [`docs/mac-mini-install-handoff.md`](docs/mac-mini-install-handoff.md)
+
 ## Quick Start
 
 ```bash
