@@ -38,7 +38,7 @@ print(f"  ollama_fallback_models: {ollama.get('fallback_models')}")
 print(f"  openai_model: {openai.get('model')}")
 print("resident creator roles:")
 for item in runtime.get("resident_creator_roles") or []:
-    print(f"  {item.get('name')}: {item.get('host')}:{item.get('port')}")
+    print(f"  {item.get('name')}: {item.get('host')}:{item.get('port')} {item.get('model_label')}")
 PY
 
 echo
@@ -53,7 +53,7 @@ print(f"selected_provider: {selected.get('provider')} ({selected.get('status')})
 for item in ((obj.get("runtime") or {}).get("providers") or []):
     print(f"provider:{item.get('provider')} {item.get('status')} {item.get('detail')}")
 for item in ((obj.get("system") or {}).get("residentRoles") or []):
-    print(f"resident:{item.get('name')} {item.get('status')} {item.get('detail')}")
+    print(f"resident:{item.get('name')} {item.get('status')} {item.get('modelLabel') or '-'} {item.get('detail')}")
 PY
 else
   echo "dashboard: DOWN $DASHBOARD_URL"

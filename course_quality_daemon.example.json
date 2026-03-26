@@ -44,9 +44,9 @@
       "model": "gpt-5.2"
     },
     "resident_creator_roles": [
-      {"name": "DRAFTER", "host": "127.0.0.1", "port": 8080},
-      {"name": "WRITER", "host": "127.0.0.1", "port": 8081},
-      {"name": "JUDGE", "host": "127.0.0.1", "port": 8082}
+      {"name": "DRAFTER", "host": "127.0.0.1", "port": 8080, "model_label": "Gemma 3 270M", "family": "MLX quantized local model", "model": "/Users/chappie/.cache/huggingface/hub/models--mlx-community--gemma-3-270m-it-4bit/snapshots/ff1143e3a10547c9f2129e94ca37059b096b23f4", "launch_label": "com.amanoba.coursequality.role.drafter", "warm_prompt": "Reply with exactly: READY"},
+      {"name": "WRITER", "host": "127.0.0.1", "port": 8081, "model_label": "Granite 4.0 350M (H)", "family": "MLX quantized local model", "model": "/Users/chappie/.cache/huggingface/hub/models--mlx-community--granite-4.0-h-350m-8bit/snapshots/754e5ae403ffa03922e36332ca5e528f14464a1b", "launch_label": "com.amanoba.coursequality.role.writer", "warm_prompt": "Reply with exactly: READY"},
+      {"name": "JUDGE", "host": "127.0.0.1", "port": 8082, "model_label": "Qwen 2.5 0.5B", "family": "MLX quantized local model", "model": "/Users/chappie/.cache/huggingface/hub/models--mlx-community--Qwen2.5-0.5B-Instruct-4bit/snapshots/a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3", "launch_label": "com.amanoba.coursequality.role.judge", "warm_prompt": "Reply with exactly: READY"}
     ]
   },
   "live": {

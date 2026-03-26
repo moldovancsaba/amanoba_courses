@@ -99,6 +99,9 @@ Installed services:
 - `com.amanoba.coursequality.watchdog`
 - `com.amanoba.coursequality.caffeinate`
 - `com.amanoba.coursequality.ollama`
+- `com.amanoba.coursequality.role.drafter`
+- `com.amanoba.coursequality.role.writer`
+- `com.amanoba.coursequality.role.judge`
 
 Service behavior:
 
@@ -175,9 +178,15 @@ Useful URLs:
 
 Resident creator roles that should stay warm:
 
-- `DRAFTER` on `127.0.0.1:8080`
-- `WRITER` on `127.0.0.1:8081`
-- `JUDGE` on `127.0.0.1:8082`
+- `DRAFTER` on `127.0.0.1:8080` using `Gemma 3 270M`
+- `WRITER` on `127.0.0.1:8081` using `Granite 4.0 350M (H)`
+- `JUDGE` on `127.0.0.1:8082` using `Qwen 2.5 0.5B`
+
+Live bridge dependency:
+
+- the worker bridge is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
+- live queue advancement still requires a real `MONGODB_URI` in `/Users/chappie/Projects/amanoba/.env.local`
+- when that secret is missing, the worker correctly reports `waiting-dependency`
 
 ## Sovereign Course Creator
 

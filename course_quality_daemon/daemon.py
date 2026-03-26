@@ -57,6 +57,17 @@ def sha256_json(value: Any) -> str:
     return sha256_text(json.dumps(value, ensure_ascii=False, sort_keys=True))
 
 
+def _resident_role_health_payload(host: str, port: int, timeout: float = 1.5) -> dict[str, Any] | None:
+    url = f"http://{host}:{port}/health"
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            body = json.loads(response.read().decode("utf-8"))
+            return body if isinstance(body, dict) else None
+    except Exception:
+        return None
+
+
 class TaskProcessingError(RuntimeError):
     def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(message)
@@ -3022,6 +3033,13 @@ class CourseQualityDaemon:
                     detail = f"reachable on {host}:{port}"
                 except OSError as exc:
                     detail = f"unreachable on {host}:{port} ({exc.__class__.__name__})"
+            payload = _resident_role_health_payload(host, port) if reachable and port > 0 else None
+            model_label = str(item.get("model_label") or (payload or {}).get("modelLabel") or "").strip()
+            launch_label = str(item.get("launch_label") or "").strip()
+            if payload:
+                health_status = str(payload.get("status") or "").strip().upper()
+                if health_status:
+                    detail = f"{detail}; {health_status.lower()}"
             snapshot.append(
                 {
                     "name": name,
@@ -3030,6 +3048,8 @@ class CourseQualityDaemon:
                     "status": "WARM" if reachable else "DOWN",
                     "reachable": reachable,
                     "detail": detail,
+                    "modelLabel": model_label,
+                    "launchLabel": launch_label,
                 }
             )
         return snapshot

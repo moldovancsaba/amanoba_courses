@@ -44,9 +44,15 @@ Current model roster and residency surface:
   - `mlx` as primary
   - `ollama` as warm fallback
 - resident creator roles:
-  - `DRAFTER` on `127.0.0.1:8080`
-  - `WRITER` on `127.0.0.1:8081`
-  - `JUDGE` on `127.0.0.1:8082`
+  - `DRAFTER` on `127.0.0.1:8080` using `Gemma 3 270M`
+  - `WRITER` on `127.0.0.1:8081` using `Granite 4.0 350M (H)`
+  - `JUDGE` on `127.0.0.1:8082` using `Qwen 2.5 0.5B`
+
+Current live bridge dependency truth:
+
+- the live bridge script is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
+- the worker can only advance the live queue when `/Users/chappie/Projects/amanoba/.env.local` contains a real `MONGODB_URI`
+- if `MONGODB_URI` is missing, the worker must report `waiting-dependency`
 
 Current creator page model:
 

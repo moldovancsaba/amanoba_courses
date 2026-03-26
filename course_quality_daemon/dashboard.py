@@ -1948,10 +1948,12 @@ function renderResidentRole(item) {
   const port = String(item && item.port ? item.port : '-');
   const detail = String(item && item.detail ? item.detail : `${host}:${port}`);
   const status = String(item && item.status ? item.status : 'DOWN');
+  const modelLabel = String(item && item.modelLabel ? item.modelLabel : '');
   return `
     <div class='runtime-item'>
       <div><strong>${escapeHtml(name)}</strong> <span class='status ${clsFor(status)}'>${escapeHtml(status)}</span></div>
       <div class='tiny'>Resident creator role</div>
+      ${modelLabel ? `<div class='tiny'>Model: ${escapeHtml(modelLabel)}</div>` : ''}
       <div class='tiny'>Endpoint: ${escapeHtml(host)}:${escapeHtml(port)}</div>
       <div class='tiny'>${escapeHtml(detail)}</div>
     </div>
@@ -2941,8 +2943,9 @@ def render_dashboard_html(daemon: CourseQualityDaemon) -> str:
                 "<div class='runtime-item'>"
                 f"<div><strong>{esc(role.get('name') or 'ROLE')}</strong> <span class='status {cls}'>{esc(status)}</span></div>"
                 "<div class='tiny'>Resident creator role</div>"
-                f"<div class='tiny'>Endpoint: {esc(role.get('host') or '127.0.0.1')}:{esc(role.get('port') or '-')}</div>"
-                f"<div class='tiny'>{esc(role.get('detail') or '')}</div>"
+                + (f"<div class='tiny'>Model: {esc(role.get('modelLabel') or '')}</div>" if role.get("modelLabel") else "")
+                + f"<div class='tiny'>Endpoint: {esc(role.get('host') or '127.0.0.1')}:{esc(role.get('port') or '-')}</div>"
+                + f"<div class='tiny'>{esc(role.get('detail') or '')}</div>"
                 "</div>"
             )
         if not rows:

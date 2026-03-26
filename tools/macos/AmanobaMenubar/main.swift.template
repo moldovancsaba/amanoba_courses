@@ -132,7 +132,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
     }
 
     @objc private func restartServices() {
-        runShell("launchctl kickstart -k gui/$UID/com.amanoba.coursequality.caffeinate && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.worker && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.dashboard && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.watchdog")
+        runShell("launchctl kickstart -k gui/$UID/com.amanoba.coursequality.caffeinate && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.role.drafter && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.role.writer && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.role.judge && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.worker && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.dashboard && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.watchdog")
     }
 
     @objc private func installServices() {

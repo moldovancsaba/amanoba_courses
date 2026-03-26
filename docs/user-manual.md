@@ -28,7 +28,7 @@ It watches the live queue, repairs weak lessons and quiz questions, and keeps th
   - `com.amanoba.coursequality.dashboard`
   - `com.amanoba.coursequality.watchdog`
   - `com.amanoba.coursequality.caffeinate`
-  - `com.amanoba.coursequality.ollama`
+  - `com.amanoba.coursequality.ollama` when available
   - `com.amanoba.coursequality.role.drafter`
   - `com.amanoba.coursequality.role.writer`
   - `com.amanoba.coursequality.role.judge`

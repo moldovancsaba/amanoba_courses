@@ -119,6 +119,10 @@ class CourseQualityWatchdog:
             self._kickstart_label("com.amanoba.coursequality.ollama")
             actions.append({"type": "restart-ollama"})
 
+        resident_repairs = self._repair_resident_roles()
+        if resident_repairs:
+            actions.extend(resident_repairs)
+
         runtime_before = self.daemon.runtime.health_snapshot()
         dashboard_runtime = self._dashboard_runtime_snapshot()
         actions.extend(self._repair_runtime_providers(runtime_before, dashboard_runtime))
@@ -313,6 +317,25 @@ class CourseQualityWatchdog:
             return True
         except OSError:
             return False
+
+    def _repair_resident_roles(self) -> list[dict[str, Any]]:
+        actions: list[dict[str, Any]] = []
+        for role in self.daemon.resident_role_snapshot():
+            if bool(role.get("reachable")):
+                continue
+            label = str(role.get("launchLabel") or "").strip()
+            if not label:
+                continue
+            self._kickstart_label(label)
+            actions.append(
+                {
+                    "type": "restart-resident-role",
+                    "role": str(role.get("name") or "ROLE"),
+                    "label": label,
+                    "endpoint": f"{role.get('host') or '127.0.0.1'}:{role.get('port') or '-'}",
+                }
+            )
+        return actions
 
     def _worker_stalled(self) -> dict[str, Any] | None:
         daemons = self._daemon_processes()

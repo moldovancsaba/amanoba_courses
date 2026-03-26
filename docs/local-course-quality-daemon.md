@@ -46,6 +46,16 @@ That means:
 
 The code still keeps an internal null provider as a guard rail, but it is not part of the documented runtime stack and is not surfaced in the UI.
 
+## Resident creator roles
+
+The launch-managed resident creator roles are:
+
+- `DRAFTER` -> `Gemma 3 270M` on `127.0.0.1:8080`
+- `WRITER` -> `Granite 4.0 350M (H)` on `127.0.0.1:8081`
+- `JUDGE` -> `Qwen 2.5 0.5B` on `127.0.0.1:8082`
+
+Each role exposes `/health`, `/generate`, and `/v1/chat/completions`.
+
 ## Feedback feed
 
 The job feed is split into four buckets:
@@ -217,6 +227,9 @@ Installed services:
 - `com.amanoba.coursequality.watchdog`
 - `com.amanoba.coursequality.caffeinate`
 - `com.amanoba.coursequality.ollama` if `ollama` exists locally
+- `com.amanoba.coursequality.role.drafter`
+- `com.amanoba.coursequality.role.writer`
+- `com.amanoba.coursequality.role.judge`
 
 Service behavior:
 
@@ -225,9 +238,16 @@ Service behavior:
 - `worker` uses `RunAtLoad` and `KeepAlive`
 - `watchdog` uses `RunAtLoad` and `StartInterval`
 - `caffeinate` uses `RunAtLoad` and `KeepAlive`
+- resident role services use `RunAtLoad` and `KeepAlive`
 
 That means the UI/runtime services stay resident, the worker stays up continuously, the watchdog is relaunched on schedule and at login, and the Mac stays awake while the stack is active.
 The worker is also started with `nice -n 10` so it runs continuously at lower scheduler priority.
+
+Live bridge dependency note:
+
+- the worker bridge is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
+- `tsx --env-file=.env.local` requires `/Users/chappie/Projects/amanoba/.env.local` to exist
+- actual live queue processing still requires a valid `MONGODB_URI`
 
 ## Watchdog
 

@@ -80,13 +80,21 @@ The menu-bar title uses simple color states:
 - one dashboard service
 - one watchdog service
 - one launch-managed `caffeinate` service
+- three launch-managed resident creator role services
 - resident MLX creator roles for:
   - drafter on `8080`
   - writer on `8081`
   - judge on `8082`
 - Ollama fallback with `keep_alive`
+- MLX/Apertus as the primary writer, with Ollama used only as fallback when MLX is unavailable
 - launch agents wrapped in `caffeinate -dimsu`
 - menubar title uses only short role labels, not model paths
+
+Current resident role roster:
+
+- `DRAFTER` -> `Gemma 3 270M`
+- `WRITER` -> `Granite 4.0 350M (H)`
+- `JUDGE` -> `Qwen 2.5 0.5B`
 
 ## Auto-Launch
 
