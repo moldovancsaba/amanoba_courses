@@ -25,6 +25,9 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
     private let healthItem = NSMenuItem(title: "Health: checking...", action: nil, keyEquivalent: "")
     private let powerItem = NSMenuItem(title: "Power: ...", action: nil, keyEquivalent: "")
     private let jobsItem = NSMenuItem(title: "Jobs: ...", action: nil, keyEquivalent: "")
+    private let drafterItem = NSMenuItem(title: "DRAFTER", action: nil, keyEquivalent: "")
+    private let writerItem = NSMenuItem(title: "WRITER", action: nil, keyEquivalent: "")
+    private let judgeItem = NSMenuItem(title: "JUDGE", action: nil, keyEquivalent: "")
     private let repoRoot = "__REPO_ROOT__"
     private let dashboardURL = "http://127.0.0.1:8765"
     private var timer: Timer?
@@ -37,23 +40,21 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
         healthItem.isEnabled = false
         powerItem.isEnabled = false
         jobsItem.isEnabled = false
+        drafterItem.isEnabled = false
+        writerItem.isEnabled = false
+        judgeItem.isEnabled = false
 
         menu.addItem(productItem)
         menu.addItem(healthItem)
         menu.addItem(powerItem)
         menu.addItem(jobsItem)
+        menu.addItem(drafterItem)
+        menu.addItem(writerItem)
+        menu.addItem(judgeItem)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(item("Open Dashboard", #selector(openDashboard)))
-        menu.addItem(item("Scan Now", #selector(scanWorkspace)))
-        menu.addItem(item("Refresh Now", #selector(refreshHealth)))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(item("Gentle Mode", #selector(setGentle)))
-        menu.addItem(item("Balanced Mode", #selector(setBalanced)))
-        menu.addItem(item("Fast Mode", #selector(setFast)))
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(item("Restart Services", #selector(restartServices)))
-        menu.addItem(item("Install Services", #selector(installServices)))
-        menu.addItem(item("Open Logs Folder", #selector(openLogsFolder)))
+        menu.addItem(item("Shutdown Services", #selector(shutdownServices)))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(item("Quit", #selector(quitApp)))
 
@@ -96,6 +97,8 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
 
                 let power = (obj["power"] as? [String: Any]) ?? [:]
                 let counts = (obj["counts"] as? [String: Any]) ?? [:]
+                let system = (obj["system"] as? [String: Any]) ?? [:]
+                let residentRoles = (system["residentRoles"] as? [[String: Any]]) ?? []
                 let pending = counts["pending"] as? Int ?? 0
                 let running = counts["running"] as? Int ?? 0
                 let completed = counts["completed"] as? Int ?? 0
@@ -106,6 +109,9 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
                 self.powerItem.title = "Power: \(mode)"
                 self.jobsItem.title = "Jobs: pending \(pending) | running \(running) | done \(completed) | failed \(failed)"
                 self.statusItem.button?.title = running > 0 ? IndicatorState.working.title : IndicatorState.idle.title
+                self.drafterItem.title = self.roleLine(label: "DRAFTER", role: residentRoles.first(where: { (($0["name"] as? String) ?? "").uppercased() == "DRAFTER" }) ?? [:])
+                self.writerItem.title = self.roleLine(label: "WRITER", role: residentRoles.first(where: { (($0["name"] as? String) ?? "").uppercased() == "WRITER" }) ?? [:])
+                self.judgeItem.title = self.roleLine(label: "JUDGE", role: residentRoles.first(where: { (($0["name"] as? String) ?? "").uppercased() == "JUDGE" }) ?? [:])
             }
         }
         task.resume()
@@ -115,32 +121,12 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(URL(string: dashboardURL)!)
     }
 
-    @objc private func scanWorkspace() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/scan' >/dev/null")
-    }
-
-    @objc private func setGentle() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=gentle' >/dev/null")
-    }
-
-    @objc private func setBalanced() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=balanced' >/dev/null")
-    }
-
-    @objc private func setFast() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=fast' >/dev/null")
-    }
-
     @objc private func restartServices() {
         runShell("launchctl kickstart -k gui/$UID/com.amanoba.coursequality.caffeinate && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.role.drafter && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.role.writer && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.role.judge && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.worker && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.dashboard && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.watchdog")
     }
 
-    @objc private func installServices() {
-        runShell("bash scripts/install-course-quality-launchagents.sh")
-    }
-
-    @objc private func openLogsFolder() {
-        NSWorkspace.shared.open(URL(fileURLWithPath: "\(repoRoot)/.course-quality/launchd"))
+    @objc private func shutdownServices() {
+        runShell("for label in com.amanoba.coursequality.worker com.amanoba.coursequality.dashboard com.amanoba.coursequality.watchdog com.amanoba.coursequality.ollama com.amanoba.coursequality.caffeinate com.amanoba.coursequality.role.drafter com.amanoba.coursequality.role.writer com.amanoba.coursequality.role.judge; do launchctl bootout \\\"gui/$UID/$label\\\" >/dev/null 2>&1 || true; done")
     }
 
     @objc private func quitApp() {
@@ -162,7 +148,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
         default:
             symbol = "⚪"
         }
-        return "\(symbol) \(label) — \(status)"
+        return "\(symbol) \(label)"
     }
 }
 
