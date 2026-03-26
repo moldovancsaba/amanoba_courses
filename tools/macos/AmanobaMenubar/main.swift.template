@@ -5,6 +5,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
     private enum IndicatorState {
         case idle
         case working
+        case stalled
         case error
 
         var title: String {
@@ -13,6 +14,8 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
                 return "⚪ AQ"
             case .working:
                 return "🟢 AQ"
+            case .stalled:
+                return "🟠 AQ"
             case .error:
                 return "🔴 AQ"
             }
@@ -25,6 +28,9 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
     private let healthItem = NSMenuItem(title: "Health: checking...", action: nil, keyEquivalent: "")
     private let powerItem = NSMenuItem(title: "Power: ...", action: nil, keyEquivalent: "")
     private let jobsItem = NSMenuItem(title: "Jobs: ...", action: nil, keyEquivalent: "")
+    private let drafterItem = NSMenuItem(title: "Drafter: ...", action: nil, keyEquivalent: "")
+    private let writerItem = NSMenuItem(title: "Writer: ...", action: nil, keyEquivalent: "")
+    private let judgeItem = NSMenuItem(title: "Judge: ...", action: nil, keyEquivalent: "")
     private let repoRoot = "__REPO_ROOT__"
     private let dashboardURL = "http://127.0.0.1:8765"
     private var timer: Timer?
@@ -37,25 +43,21 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
         healthItem.isEnabled = false
         powerItem.isEnabled = false
         jobsItem.isEnabled = false
+        drafterItem.isEnabled = false
+        writerItem.isEnabled = false
+        judgeItem.isEnabled = false
 
         menu.addItem(productItem)
         menu.addItem(healthItem)
         menu.addItem(powerItem)
         menu.addItem(jobsItem)
+        menu.addItem(drafterItem)
+        menu.addItem(writerItem)
+        menu.addItem(judgeItem)
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(item("Open Control Center", #selector(openDashboard)))
-        menu.addItem(item("Open Feed JSON", #selector(openFeed)))
-        menu.addItem(item("Open Health JSON", #selector(openHealth)))
-        menu.addItem(item("Process One Job", #selector(runOneJob)))
-        menu.addItem(item("Scan Workspace", #selector(scanWorkspace)))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(item("Set Gentle Mode", #selector(setGentle)))
-        menu.addItem(item("Set Balanced Mode", #selector(setBalanced)))
-        menu.addItem(item("Set Fast Mode", #selector(setFast)))
-        menu.addItem(NSMenuItem.separator())
+        menu.addItem(item("Open Dashboard", #selector(openDashboard)))
         menu.addItem(item("Restart Services", #selector(restartServices)))
-        menu.addItem(item("Install/Refresh Services", #selector(installServices)))
-        menu.addItem(item("Open Logs Folder", #selector(openLogsFolder)))
+        menu.addItem(item("Shutdown Services", #selector(shutdownServices)))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(item("Quit", #selector(quitApp)))
 
@@ -98,68 +100,83 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
 
                 let power = (obj["power"] as? [String: Any]) ?? [:]
                 let counts = (obj["counts"] as? [String: Any]) ?? [:]
+                let workerState = (obj["workerState"] as? [String: Any]) ?? [:]
+                let roles = (obj["roles"] as? [String: Any]) ?? [:]
                 let pending = counts["pending"] as? Int ?? 0
                 let running = counts["running"] as? Int ?? 0
                 let completed = counts["completed"] as? Int ?? 0
                 let failed = counts["failed"] as? Int ?? 0
                 let mode = (power["mode"] as? String) ?? "unknown"
+                let stalled = workerState["stalled"] as? Bool ?? false
+                let stalledSeconds = workerState["stalledSeconds"] as? Int
+                let workerLabel = stalled
+                    ? "stalled" + (stalledSeconds != nil ? " (\(stalledSeconds!)s)" : "")
+                    : (running > 0 ? "working" : "idle")
 
-                self.healthItem.title = "Health: dashboard up"
+                self.healthItem.title = "Health: dashboard up | worker \(workerLabel)"
                 self.powerItem.title = "Power: \(mode)"
                 self.jobsItem.title = "Jobs: pending \(pending) | running \(running) | done \(completed) | failed \(failed)"
-                self.statusItem.button?.title = running > 0 ? IndicatorState.working.title : IndicatorState.idle.title
+                self.statusItem.button?.title = stalled ? IndicatorState.stalled.title : (running > 0 ? IndicatorState.working.title : IndicatorState.idle.title)
+                self.drafterItem.title = self.roleLine(label: "DRAFTER", role: (roles["drafter"] as? [String: Any]) ?? [:])
+                self.writerItem.title = self.roleLine(label: "WRITER", role: (roles["writer"] as? [String: Any]) ?? [:])
+                self.judgeItem.title = self.roleLine(label: "JUDGE", role: (roles["judge"] as? [String: Any]) ?? [:])
             }
         }
         task.resume()
     }
 
     @objc private func openDashboard() {
-        NSWorkspace.shared.open(URL(string: dashboardURL)!)
-    }
-
-    @objc private func openFeed() {
-        NSWorkspace.shared.open(URL(string: "\(dashboardURL)/api/feed?limit=10")!)
-    }
-
-    @objc private func openHealth() {
-        NSWorkspace.shared.open(URL(string: "\(dashboardURL)/api/health")!)
-    }
-
-    @objc private func runOneJob() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/run-once?maxItems=1' >/dev/null")
-    }
-
-    @objc private func scanWorkspace() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/scan' >/dev/null")
-    }
-
-    @objc private func setGentle() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=gentle' >/dev/null")
-    }
-
-    @objc private func setBalanced() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=balanced' >/dev/null")
-    }
-
-    @objc private func setFast() {
-        runShell("curl -sS -X POST '\(dashboardURL)/api/power-mode?mode=fast' >/dev/null")
+        runShell("open 'http://127.0.0.1:8765/'")
     }
 
     @objc private func restartServices() {
-        runShell("launchctl kickstart -k gui/$UID/com.amanoba.coursequality.worker && launchctl kickstart -k gui/$UID/com.amanoba.coursequality.dashboard")
+        runShell("""
+        LAUNCH_DIR=\"$HOME/Library/LaunchAgents\"
+        for label in com.amanoba.coursequality.worker com.amanoba.coursequality.dashboard com.amanoba.coursequality.watchdog com.amanoba.coursequality.ollama; do
+          launchctl bootout \"gui/$UID/$label\" >/dev/null 2>&1 || true
+        done
+        for plist in \"$LAUNCH_DIR/com.amanoba.coursequality.worker.plist\" \"$LAUNCH_DIR/com.amanoba.coursequality.dashboard.plist\" \"$LAUNCH_DIR/com.amanoba.coursequality.watchdog.plist\" \"$LAUNCH_DIR/com.amanoba.coursequality.ollama.plist\"; do
+          [[ -f \"$plist\" ]] && launchctl bootstrap \"gui/$UID\" \"$plist\" >/dev/null 2>&1 || true
+        done
+        for label in com.amanoba.coursequality.worker com.amanoba.coursequality.dashboard com.amanoba.coursequality.watchdog com.amanoba.coursequality.ollama; do
+          launchctl kickstart -k \"gui/$UID/$label\" >/dev/null 2>&1 || true
+        done
+        """)
     }
 
-    @objc private func installServices() {
-        runShell("bash scripts/install-course-quality-launchagents.sh")
-    }
-
-    @objc private func openLogsFolder() {
-        NSWorkspace.shared.open(URL(fileURLWithPath: "\(repoRoot)/.course-quality/launchd"))
+    @objc private func shutdownServices() {
+        runShell("""
+        for label in com.amanoba.coursequality.worker com.amanoba.coursequality.dashboard com.amanoba.coursequality.watchdog com.amanoba.coursequality.ollama; do
+          launchctl bootout \"gui/$UID/$label\" >/dev/null 2>&1 || true
+        done
+        """)
     }
 
     @objc private func quitApp() {
+        shutdownServices()
         NSApplication.shared.terminate(nil)
     }
+
+    private func roleLine(label: String, role: [String: Any]) -> String {
+        let status = (role["status"] as? String) ?? "unknown"
+        let requestedModel = (role["label"] as? String) ?? ""
+        let symbol: String
+        switch status.lowercased() {
+        case "healthy", "working", "available":
+            symbol = "🟢"
+        case "idle":
+            symbol = "⚪"
+        case "stalled", "degraded", "warning":
+            symbol = "🟠"
+        case "error", "unavailable", "failed":
+            symbol = "🔴"
+        default:
+            symbol = "⚪"
+        }
+        let labelText = requestedModel.isEmpty ? label : "\(label): \(requestedModel)"
+        return "\(symbol) \(labelText) — \(status)"
+    }
+
 }
 
 let app = NSApplication.shared

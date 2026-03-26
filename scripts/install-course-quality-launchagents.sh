@@ -24,6 +24,18 @@ watchdog = raw.get('watchdog') or {}
 print(int(watchdog.get('check_interval_seconds') or 600))
 PY
 )"
+CAFFEINATE_BIN="$(command -v caffeinate || true)"
+if [[ -n "$CAFFEINATE_BIN" ]]; then
+WORKER_ARGS="<string>$CAFFEINATE_BIN</string><string>-dimsu</string><string>$ROOT/scripts/course-quality-worker.sh</string>"
+DASHBOARD_ARGS="<string>$CAFFEINATE_BIN</string><string>-dimsu</string><string>$ROOT/scripts/course-quality-dashboard.sh</string>"
+WATCHDOG_ARGS="<string>$CAFFEINATE_BIN</string><string>-dimsu</string><string>$ROOT/scripts/course-quality-watchdog.sh</string>"
+OLLAMA_ARGS="<string>$CAFFEINATE_BIN</string><string>-dimsu</string><string>$ROOT/scripts/course-quality-ollama.sh</string>"
+else
+WORKER_ARGS="<string>$ROOT/scripts/course-quality-worker.sh</string>"
+DASHBOARD_ARGS="<string>$ROOT/scripts/course-quality-dashboard.sh</string>"
+WATCHDOG_ARGS="<string>$ROOT/scripts/course-quality-watchdog.sh</string>"
+OLLAMA_ARGS="<string>$ROOT/scripts/course-quality-ollama.sh</string>"
+fi
 WORKER_PLIST="$LAUNCH_DIR/com.amanoba.coursequality.worker.plist"
 DASHBOARD_PLIST="$LAUNCH_DIR/com.amanoba.coursequality.dashboard.plist"
 OLLAMA_PLIST="$LAUNCH_DIR/com.amanoba.coursequality.ollama.plist"
@@ -33,7 +45,7 @@ cat > "$WORKER_PLIST" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>com.amanoba.coursequality.worker</string>
-<key>ProgramArguments</key><array><string>$ROOT/scripts/course-quality-worker.sh</string></array>
+<key>ProgramArguments</key><array>$WORKER_ARGS</array>
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
@@ -51,7 +63,7 @@ cat > "$DASHBOARD_PLIST" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>com.amanoba.coursequality.dashboard</string>
-<key>ProgramArguments</key><array><string>$ROOT/scripts/course-quality-dashboard.sh</string></array>
+<key>ProgramArguments</key><array>$DASHBOARD_ARGS</array>
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
@@ -69,7 +81,7 @@ cat > "$WATCHDOG_PLIST" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>com.amanoba.coursequality.watchdog</string>
-<key>ProgramArguments</key><array><string>$ROOT/scripts/course-quality-watchdog.sh</string></array>
+<key>ProgramArguments</key><array>$WATCHDOG_ARGS</array>
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
@@ -88,7 +100,7 @@ cat > "$OLLAMA_PLIST" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>com.amanoba.coursequality.ollama</string>
-<key>ProgramArguments</key><array><string>$ROOT/scripts/course-quality-ollama.sh</string></array>
+<key>ProgramArguments</key><array>$OLLAMA_ARGS</array>
 <key>EnvironmentVariables</key><dict>
 <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 </dict>

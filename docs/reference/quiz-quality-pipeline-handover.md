@@ -4,6 +4,20 @@ This document is the **single source of truth** for running the quiz/lesson qual
 
 It is designed to be used as a **handover prompt + operating manual**, similar in spirit to `agent_working_loop_canonical_operating_document.md`.
 
+Applies to: **Amanoba v0.2.0**.
+
+## Status and SSOT
+
+- **Status:** current reference and operating handover
+- **Document owner:** Amanoba course/QC maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if the live pipeline behavior and a reference note conflict, the live pipeline behavior and the current SSOT win until this handover is updated
+
+## Ownership and SSOT
+
+- **Pipeline SSOT:** this document plus `docs/reference/quiz-quality-pipeline-playbook.md`
+- **Runtime version:** `Amanoba v0.2.0`
+
 ---
 
 ## Ground Rules (Non‑Negotiable)

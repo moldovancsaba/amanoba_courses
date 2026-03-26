@@ -4,6 +4,13 @@
 **Status**: ✅ ACTIVE  
 **Version**: 1.0
 
+## Status and SSOT
+
+- **Status:** current course-building rules
+- **Document owner:** Amanoba course-creation maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if live runtime or pipeline behavior differs, update this file before using it as a delivery reference
+
 ---
 
 ## Overview

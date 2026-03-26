@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import re
@@ -8,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import time
+import threading
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -147,6 +149,20 @@ Issues to fix:
 def _lesson_prompt(course: dict[str, Any], lesson: dict[str, Any], validation_errors: list[str]) -> str:
     language_code = str(course.get("language") or lesson.get("language") or "").strip().lower()
     language_name = _language_name(language_code)
+    canonical_sections = [
+        "Learning goal",
+        "Who",
+        "What",
+        "Where",
+        "When",
+        "Why it matters",
+        "How",
+        "Guided exercise",
+        "Independent exercise",
+        "Self-check",
+        "Bibliography (sources used)",
+        "Read more (optional)",
+    ]
     lesson_excerpt = _htmlish_to_text(str(lesson.get("content") or ""))[:4500]
     email_excerpt = _htmlish_to_text(str(lesson.get("emailBody") or ""))[:1200]
     return f"""
@@ -174,7 +190,8 @@ Quality bar:
 - Keep the same topic and learning intent.
 - Improve narrative flow, structure, clarity, and usefulness.
 - Be specific and practical instead of generic.
-- Keep Markdown lesson formatting. Do not return HTML as the preferred final lesson body.
+- Keep Markdown lesson formatting and follow the canonical lesson grammar exactly.
+- The lesson content MUST include the canonical blocks in order.
 - Do not invent unsupported claims or sources.
 - Expand weak lessons into a complete teaching asset, not a short summary.
 - **CRITICAL**: Do NOT mix languages. If you are writing in {language_name}, every single word must be in {language_name}.
@@ -187,8 +204,8 @@ Length rules (STRICT):
 - If the input is a placeholder or outline, you MUST expand it into a full, detailed professional lesson.
 - DO NOT be brief. Be thorough, detailed, and professional.
 - If the output is shorter than 1200 characters, it will be REJECTED.
-- content must include clear section headings
-- content must include: learning goal, why it matters, explanation, examples, guided exercise, and self-check
+- content must include these canonical blocks in order:
+{chr(10).join(f"- {section}" for section in canonical_sections)}
 - content must be valid Markdown using headings, lists, emphasis, and links where appropriate
 - emailBody must be more informative than a one-line reminder
 - emailBody should be between 120 and 500 characters
@@ -197,7 +214,7 @@ Length rules (STRICT):
 Use this exact shape:
 {{
   "title": "Localized lesson title",
-  "content": "## Learning goal\\n...\\n\\n## Why it matters\\n...\\n\\n## Explanation\\n...\\n\\n## Example\\n...\\n\\n## Guided exercise\\n...\\n\\n## Self-check\\n...",
+  "content": "## Learning goal\\n...\\n\\n## Who\\n...\\n\\n## What\\n...\\n\\n## Where\\n...\\n\\n## When\\n...\\n\\n## Why it matters\\n...\\n\\n## How\\n...\\n\\n## Guided exercise\\n...\\n\\n## Independent exercise\\n...\\n\\n## Self-check\\n...\\n\\n## Bibliography (sources used)\\n...\\n\\n## Read more (optional)\\n...",
   "emailSubject": "Localized subject line",
   "emailBody": "## Today\\nShort localized summary with one clear call to open the lesson."
 }}
@@ -267,6 +284,9 @@ class BaseProvider:
     def health(self) -> RuntimeHealth:
         raise NotImplementedError
 
+    def warm(self) -> bool:
+        return self.health().available
+
     def rewrite_question(
         self,
         course: dict[str, Any],
@@ -303,6 +323,7 @@ class OllamaProvider(BaseProvider):
         question_num_predict: int | None = None,
         num_ctx: int = 2048,
         num_thread: int = 2,
+        keep_alive: str = "24h",
     ) -> None:
         self.endpoint = endpoint.rstrip("/")
         self.model = model
@@ -314,6 +335,7 @@ class OllamaProvider(BaseProvider):
         self.question_num_predict = int(question_num_predict or num_predict)
         self.num_ctx = num_ctx
         self.num_thread = num_thread
+        self.keep_alive = str(keep_alive or "24h").strip() or "24h"
 
     def health(self) -> RuntimeHealth:
         try:
@@ -339,6 +361,33 @@ class OllamaProvider(BaseProvider):
                 configured_model=self.model,
                 endpoint=self.endpoint,
             )
+
+    def warm(self) -> bool:
+        try:
+            health = self.health()
+            if not health.available or not health.resolved_model:
+                return False
+            payload = {
+                "model": str(health.resolved_model),
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Warm this model and keep it loaded. Reply with a short acknowledgement.",
+                    }
+                ],
+                "stream": False,
+                "keep_alive": self.keep_alive,
+                "options": {
+                    "temperature": 0,
+                    "num_predict": 8,
+                    "num_ctx": self.num_ctx,
+                    "num_thread": self.num_thread,
+                },
+            }
+            body = self._request_json("/api/chat", payload)
+            return bool(body)
+        except Exception:
+            return False
 
     def rewrite_question(self, course: dict[str, Any], lesson: dict[str, Any], question: dict[str, Any], validation_errors: list[str]) -> dict[str, Any]:
         prompt = self._question_prompt(course, lesson, question, validation_errors)
@@ -379,6 +428,7 @@ class OllamaProvider(BaseProvider):
                     "num_ctx": self.num_ctx,
                     "num_thread": self.num_thread,
                 },
+                "keep_alive": self.keep_alive,
             }
             try:
                 body = self._request_json("/api/generate", payload)
@@ -418,6 +468,7 @@ class OllamaProvider(BaseProvider):
                     "num_ctx": self.num_ctx,
                     "num_thread": self.num_thread,
                 },
+                "keep_alive": self.keep_alive,
             }
             try:
                 body = self._request_json("/api/generate", payload)
@@ -444,13 +495,14 @@ class OllamaProvider(BaseProvider):
                             "prompt": repair_prompt,
                             "stream": False,
                             "format": "json",
-                            "options": {
-                                "temperature": 0,
-                                "num_predict": max(num_predict, 768),
-                                "num_ctx": self.num_ctx,
-                                "num_thread": self.num_thread,
-                            },
+                        "options": {
+                            "temperature": 0,
+                            "num_predict": max(num_predict, 768),
+                            "num_ctx": self.num_ctx,
+                            "num_thread": self.num_thread,
                         },
+                        "keep_alive": self.keep_alive,
+                    },
                     )
                     repaired = str(repair_body.get("response") or "").strip()
                     if not repaired:
@@ -533,6 +585,7 @@ class MLXProvider(BaseProvider):
         model: str,
         timeout: int = 180,
         max_tokens: int = 768,
+        temperature: float = 0.1,
         lesson_max_tokens: int | None = None,
         question_max_tokens: int | None = None,
         normalizer_endpoint: str = "http://127.0.0.1:11434",
@@ -541,28 +594,190 @@ class MLXProvider(BaseProvider):
         health_timeout: int = 15,
         cooldown_seconds: int = 600,
         max_consecutive_failures: int = 2,
-        fast_mlx_port: int | None = 8501,
+        resident_server: bool = False,
+        server_host: str = "127.0.0.1",
+        server_port: int = 0,
+        server_startup_timeout: int = 180,
     ) -> None:
         self.model = model
         self.timeout = timeout
         self.max_tokens = max_tokens
+        self.temperature = float(temperature)
         self.lesson_max_tokens = int(lesson_max_tokens or max_tokens)
         self.question_max_tokens = int(question_max_tokens or max_tokens)
         self.python_bin = self._resolve_python_bin(python_bin)
         self.health_timeout = max(5, int(health_timeout or 15))
         self.cooldown_seconds = max(60, int(cooldown_seconds or 600))
         self.max_consecutive_failures = max(1, int(max_consecutive_failures or 2))
+        self.resident_server = bool(resident_server)
+        self.server_host = str(server_host or "127.0.0.1").strip() or "127.0.0.1"
+        self.server_port = int(server_port or 0)
+        self.server_startup_timeout = max(30, int(server_startup_timeout or 180))
         self._cooldown_until = 0.0
         self._consecutive_failures = 0
         self._last_failure_detail = ""
-        self.fast_mlx_port = fast_mlx_port
+        self._health_cache: RuntimeHealth | None = None
+        self._health_cache_at = 0.0
+        self._health_cache_ttl = 60.0
+        self._resident_server_proc: subprocess.Popen[str] | None = None
+        self._resident_server_lock = threading.RLock()
+        self._resident_server_ready_at = 0.0
         self.normalizer = OllamaProvider(normalizer_endpoint, normalizer_model)
+        atexit.register(self.close)
+
+    def close(self) -> None:
+        with self._resident_server_lock:
+            proc = self._resident_server_proc
+            self._resident_server_proc = None
+            if proc is None:
+                return
+            if proc.poll() is None:
+                try:
+                    proc.terminate()
+                    proc.wait(timeout=5)
+                except Exception:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+
+    def warm(self) -> bool:
+        if not self.resident_server:
+            return self.health().available
+        self._ensure_resident_server(warm=True)
+        return self.health().available
 
     def _resolved_model_path(self) -> str:
         candidate = os.path.expanduser(self.model)
         if os.path.isdir(candidate):
             return candidate
         return self.model
+
+    def _server_base_url(self) -> str:
+        if not self.server_port:
+            raise RuntimeError("MLX resident server port is not configured.")
+        return f"http://{self.server_host}:{self.server_port}"
+
+    def _server_command(self) -> list[str]:
+        return [
+            self.python_bin,
+            "-m",
+            "mlx_lm",
+            "server",
+            "--model",
+            self._resolved_model_path(),
+            "--host",
+            self.server_host,
+            "--port",
+            str(self.server_port),
+            "--log-level",
+            "ERROR",
+        ]
+
+    def _server_process_alive(self) -> bool:
+        proc = self._resident_server_proc
+        return bool(proc and proc.poll() is None)
+
+    def _server_ready(self) -> bool:
+        if not self._server_process_alive():
+            return False
+        if not self.server_port:
+            return False
+        try:
+            body = self._server_request_json("/v1/models", timeout=min(10, self.health_timeout))
+            models = body.get("data") or body.get("models") or []
+            if isinstance(models, list):
+                resolved = self._resolved_model_path()
+                for item in models:
+                    name = str((item or {}).get("id") or (item or {}).get("name") or "").strip()
+                    if not name:
+                        continue
+                    if name == resolved or name == self.model or os.path.basename(name) == os.path.basename(resolved):
+                        return True
+                return bool(models)
+            return True
+        except Exception:
+            return False
+
+    def _ensure_resident_server(self, warm: bool = False) -> None:
+        if not self.resident_server:
+            return
+        with self._resident_server_lock:
+            if self._server_ready():
+                self._resident_server_ready_at = time.time()
+                return
+            proc = self._resident_server_proc
+            if proc is None or proc.poll() is not None:
+                if not self.server_port:
+                    raise RuntimeError("MLX resident server port is not configured.")
+                command = self._server_command()
+                env = os.environ.copy()
+                env.setdefault("PYTHONUNBUFFERED", "1")
+                env.setdefault("TOKENIZERS_PARALLELISM", "false")
+                try:
+                    proc = subprocess.Popen(
+                        command,
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        env=env,
+                    )
+                except Exception as exc:
+                    raise RuntimeError(f"Failed to start MLX resident server on port {self.server_port}: {exc}") from exc
+                self._resident_server_proc = proc
+            deadline = time.time() + (self.server_startup_timeout if warm else self.health_timeout)
+            last_error: Exception | None = None
+            while time.time() < deadline:
+                if self._server_ready():
+                    self._resident_server_ready_at = time.time()
+                    self._record_success()
+                    return
+                if proc.poll() is not None:
+                    last_error = RuntimeError(f"MLX resident server exited with code {proc.returncode}.")
+                    break
+                time.sleep(1.0)
+            detail = f"MLX resident server failed to become ready on port {self.server_port}."
+            if last_error is not None:
+                detail = f"{detail} {last_error}"
+            self._record_failure(detail)
+            raise RuntimeError(detail)
+
+    def _server_request_json(self, path: str, payload: dict[str, Any] | None = None, timeout: int | None = None) -> dict[str, Any]:
+        data = None
+        headers = {"Accept": "application/json"}
+        method = "GET"
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+            method = "POST"
+        req = urllib.request.Request(f"{self._server_base_url()}{path}", data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout or self.health_timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except (TimeoutError, socket.timeout) as exc:
+            raise RuntimeError(f"MLX resident server request timed out after {timeout or self.health_timeout} seconds.") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"MLX resident server request failed: {exc}") from exc
+
+    def _server_generate_text(self, prompt: str, max_tokens_override: int | None = None) -> str:
+        self._ensure_resident_server(warm=True)
+        payload = {
+            "model": self._resolved_model_path(),
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+            "temperature": self.temperature,
+            "max_tokens": int(max_tokens_override or self.max_tokens),
+        }
+        body = self._server_request_json("/v1/chat/completions", payload=payload, timeout=self.timeout)
+        choices = body.get("choices") or []
+        if not isinstance(choices, list) or not choices:
+            raise RuntimeError("MLX resident server returned no choices.")
+        first = choices[0] or {}
+        message = first.get("message") or {}
+        text = str(message.get("content") or "").strip()
+        if not text:
+            raise RuntimeError("MLX resident server returned empty response.")
+        return text
 
     def _resolve_python_bin(self, configured: str | None) -> str:
         candidates = [
@@ -610,8 +825,52 @@ class MLXProvider(BaseProvider):
 
     def health(self) -> RuntimeHealth:
         model_path = self._resolved_model_path()
+        now = time.time()
+        if self._health_cache is not None and (now - self._health_cache_at) < self._health_cache_ttl:
+            cached = self._health_cache
+            if cached.available and self._cooldown_active():
+                return RuntimeHealth(self.name, "DEGRADED", self._cooldown_detail(), False, configured_model=self.model, resolved_model=model_path)
+            return RuntimeHealth(
+                cached.provider,
+                cached.status,
+                cached.detail,
+                cached.available,
+                configured_model=cached.configured_model,
+                resolved_model=model_path,
+                endpoint=cached.endpoint,
+            )
+        if self.resident_server:
+            try:
+                self._ensure_resident_server(warm=False)
+            except Exception as exc:
+                detail = self._classify_failure(str(exc))
+                health = RuntimeHealth(self.name, "UNAVAILABLE", detail, False, configured_model=self.model, resolved_model=model_path)
+                self._health_cache = health
+                self._health_cache_at = now
+                return health
+            if not os.path.isdir(model_path):
+                health = RuntimeHealth(self.name, "UNAVAILABLE", f"MLX model path not found: {model_path}", False, configured_model=self.model)
+                self._health_cache = health
+                self._health_cache_at = now
+                return health
+            health = RuntimeHealth(
+                self.name,
+                "HEALTHY",
+                f"MLX resident server is running on {self.server_host}:{self.server_port}.",
+                True,
+                configured_model=self.model,
+                resolved_model=model_path,
+                endpoint=f"http://{self.server_host}:{self.server_port}",
+            )
+            self._record_success()
+            self._health_cache = health
+            self._health_cache_at = now
+            return health
         if self._cooldown_active():
-            return RuntimeHealth(self.name, "DEGRADED", self._cooldown_detail(), False, configured_model=self.model, resolved_model=model_path)
+            health = RuntimeHealth(self.name, "DEGRADED", self._cooldown_detail(), False, configured_model=self.model, resolved_model=model_path)
+            self._health_cache = health
+            self._health_cache_at = now
+            return health
         try:
             completed = subprocess.run(
                 [self.python_bin, "-c", "import mlx_lm"],
@@ -623,17 +882,26 @@ class MLXProvider(BaseProvider):
         except subprocess.TimeoutExpired as exc:
             detail = f"MLX runtime health probe timed out after {self.health_timeout} seconds."
             self._record_failure(detail)
-            return RuntimeHealth(self.name, "UNAVAILABLE", detail, False, configured_model=self.model, resolved_model=model_path)
+            health = RuntimeHealth(self.name, "UNAVAILABLE", detail, False, configured_model=self.model, resolved_model=model_path)
+            self._health_cache = health
+            self._health_cache_at = now
+            return health
         except Exception as exc:
             detail = self._classify_failure(f"MLX runtime health probe failed: {exc}")
             self._record_failure(detail)
-            return RuntimeHealth(self.name, "UNAVAILABLE", detail, False, configured_model=self.model, resolved_model=model_path)
+            health = RuntimeHealth(self.name, "UNAVAILABLE", detail, False, configured_model=self.model, resolved_model=model_path)
+            self._health_cache = health
+            self._health_cache_at = now
+            return health
         if completed.returncode != 0:
             detail = self._classify_failure(completed.stderr or completed.stdout or f"MLX health probe exited with code {completed.returncode}.")
             self._record_failure(detail)
-            return RuntimeHealth(self.name, "UNAVAILABLE", detail, False, configured_model=self.model, resolved_model=model_path)
+            health = RuntimeHealth(self.name, "UNAVAILABLE", detail, False, configured_model=self.model, resolved_model=model_path)
+            self._health_cache = health
+            self._health_cache_at = now
+            return health
         if os.path.isdir(model_path):
-            return RuntimeHealth(
+            health = RuntimeHealth(
                 self.name,
                 "HEALTHY",
                 f"MLX runtime available in {self.python_bin} and local model path found.",
@@ -641,7 +909,14 @@ class MLXProvider(BaseProvider):
                 configured_model=self.model,
                 resolved_model=model_path,
             )
-        return RuntimeHealth(self.name, "UNAVAILABLE", f"MLX model path not found: {model_path}", False, configured_model=self.model)
+            self._record_success()
+            self._health_cache = health
+            self._health_cache_at = now
+            return health
+        health = RuntimeHealth(self.name, "UNAVAILABLE", f"MLX model path not found: {model_path}", False, configured_model=self.model)
+        self._health_cache = health
+        self._health_cache_at = now
+        return health
 
     def rewrite_question(self, course: dict[str, Any], lesson: dict[str, Any], question: dict[str, Any], validation_errors: list[str]) -> dict[str, Any]:
         prompt = _question_prompt(course, lesson, question, validation_errors)
@@ -666,13 +941,15 @@ class MLXProvider(BaseProvider):
         health = self.health()
         if not health.available:
             raise RuntimeError(f"MLX not available: {health.detail}")
+        if self.resident_server:
+            return self._server_generate_text(prompt, max_tokens_override=max_tokens or max(self.max_tokens, 1400))
         return self._generate_text(prompt, max_tokens or max(self.max_tokens, 1400))
 
     def _generate_json(self, prompt: str, max_tokens_override: int | None = None) -> dict[str, Any]:
         health = self.health()
         if not health.available:
             raise RuntimeError(f"MLX not available: {health.detail}")
-        text = self._generate_text(prompt, max_tokens_override)
+        text = self._server_generate_text(prompt, max_tokens_override) if self.resident_server else self._generate_text(prompt, max_tokens_override)
         try:
             cleaned = self._extract_json(text)
             return json.loads(cleaned)
@@ -702,22 +979,6 @@ class MLXProvider(BaseProvider):
 
     def _generate_text(self, prompt: str, max_tokens_override: int | None = None) -> str:
         max_tokens = int(max_tokens_override or self.max_tokens)
-        
-        # Try Fast MLX worker if available
-        if self.fast_mlx_port:
-            try:
-                url = f"http://127.0.0.1:{self.fast_mlx_port}/generate"
-                payload = {"prompt": prompt, "max_tokens": max_tokens}
-                data = json.dumps(payload).encode("utf-8")
-                req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
-                with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                    text = response.read().decode("utf-8").strip()
-                    if text:
-                        self._record_success()
-                        return text
-            except Exception:
-                # Fallback to isolated worker on any server error
-                pass
 
         # Fallback: Isolated Subprocess Worker
         command = [
@@ -939,6 +1200,7 @@ class LocalRuntimeManager:
     def __init__(self, config: dict[str, Any]) -> None:
         self.provider_order = list(config.get("provider_order") or ["ollama", "mlx", "openai", "none"])
         self.writer_provider_order = list(config.get("writer_provider_order") or ["mlx", "ollama", "none"])
+        self.creator_pipeline = dict(config.get("creator_pipeline") or {})
         self.providers: dict[str, BaseProvider] = {
             "ollama": OllamaProvider(
                 endpoint=str(config.get("ollama", {}).get("endpoint") or "http://127.0.0.1:11434"),
@@ -951,6 +1213,7 @@ class LocalRuntimeManager:
                 question_num_predict=int(config.get("ollama", {}).get("question_num_predict") or config.get("ollama", {}).get("num_predict") or 384),
                 num_ctx=int(config.get("ollama", {}).get("num_ctx") or 2048),
                 num_thread=int(config.get("ollama", {}).get("num_thread") or 2),
+                keep_alive=str(config.get("ollama", {}).get("keep_alive") or "24h"),
             ),
             "mlx": MLXProvider(
                 model=str(
@@ -959,6 +1222,7 @@ class LocalRuntimeManager:
                 ),
                 timeout=int(config.get("mlx", {}).get("timeout") or 180),
                 max_tokens=int(config.get("mlx", {}).get("max_tokens") or 768),
+                temperature=float(config.get("mlx", {}).get("temperature") or 0.1),
                 lesson_max_tokens=int(config.get("mlx", {}).get("lesson_max_tokens") or config.get("mlx", {}).get("max_tokens") or 768),
                 question_max_tokens=int(config.get("mlx", {}).get("question_max_tokens") or config.get("mlx", {}).get("max_tokens") or 768),
                 normalizer_endpoint=str(config.get("mlx", {}).get("normalizer_endpoint") or "http://127.0.0.1:11434"),
@@ -973,6 +1237,298 @@ class LocalRuntimeManager:
                 model=str(config.get("openai", {}).get("model") or "gpt-5.2"),
             ),
             "none": NullProvider(),
+        }
+        self.creator_role_providers: dict[str, BaseProvider] = {}
+        self._init_creator_role_providers()
+        self.warm_creator_roles()
+
+    def _specialist_role_available(self, role: str) -> bool:
+        provider = self.creator_provider(role)
+        return provider is not None and provider.name != "none" and provider.health().available
+
+    def specialist_qc_available(self) -> bool:
+        return all(self._specialist_role_available(role) for role in ("drafter", "writer", "judge"))
+
+    def _json_from_markdown_provider(self, provider: BaseProvider, prompt: str, *, max_tokens: int) -> dict[str, Any]:
+        text = provider.generate_markdown(prompt, max_tokens=max_tokens)
+        cleaned = text.strip()
+        if cleaned.startswith("{") and cleaned.endswith("}"):
+            return json.loads(cleaned)
+        match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+        raise RuntimeError(f"{provider.name} did not return JSON: {cleaned[:400]}")
+
+    def _clamp_score(self, value: Any, default: float = 0.5) -> float:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            numeric = float(default)
+        return max(0.0, min(1.0, numeric))
+
+    def specialist_rewrite_question(
+        self,
+        course: dict[str, Any],
+        lesson: dict[str, Any],
+        question: dict[str, Any],
+        validation_errors: list[str],
+        human_feedback: list[str] | None = None,
+    ) -> dict[str, Any]:
+        if not self.specialist_qc_available():
+            raise RuntimeError("Specialist QC pipeline is not available.")
+        feedback_rows = [str(item).strip() for item in (human_feedback or []) if str(item).strip()]
+        drafter = self.creator_provider("drafter")
+        writer = self.creator_provider("writer")
+        judge = self.creator_provider("judge")
+        timings: list[dict[str, Any]] = []
+
+        drafter_prompt = f"""
+You are the Drafter in Amanoba QC.
+Break this quiz question into atomic rewrite guidance.
+Return strict JSON only:
+{{
+  "rewriteBrief": "one paragraph",
+  "atomicFocuses": ["...", "..."],
+  "risks": ["...", "..."],
+  "d_conf": 0.0,
+  "d_impact": 0.0
+}}
+
+Target language only: {_language_name(course.get("language") or lesson.get("language"))}
+Current question:
+{json.dumps(question, ensure_ascii=False)}
+Validation errors:
+{json.dumps(validation_errors, ensure_ascii=False)}
+Human feedback:
+{json.dumps(feedback_rows, ensure_ascii=False)}
+""".strip()
+        started = time.perf_counter()
+        draft_breakdown = self._json_from_markdown_provider(drafter, drafter_prompt, max_tokens=600)
+        timings.append({"provider": f"{drafter.name}:drafter", "status": "success", "durationMs": int((time.perf_counter() - started) * 1000)})
+
+        writer_prompt = f"""
+You are the Writer in Amanoba QC.
+Write one final improved quiz question.
+Return strict JSON only:
+{{
+  "question": "...",
+  "options": ["...", "...", "...", "..."],
+  "correctIndex": 0,
+  "questionType": "...",
+  "difficulty": "...",
+  "category": "...",
+  "hashtags": ["..."],
+  "w_conf": 0.0,
+  "w_impact": 0.0
+}}
+
+Rules:
+- Use only {_language_name(course.get("language") or lesson.get("language"))}
+- No mixed language
+- Application-first, never recall-first
+- Strong realistic distractors
+
+Question:
+{json.dumps(question, ensure_ascii=False)}
+Rewrite brief:
+{json.dumps(draft_breakdown, ensure_ascii=False)}
+""".strip()
+        started = time.perf_counter()
+        writer_result = self._json_from_markdown_provider(writer, writer_prompt, max_tokens=900)
+        timings.append({"provider": f"{writer.name}:writer", "status": "success", "durationMs": int((time.perf_counter() - started) * 1000)})
+
+        candidate = {
+            "question": writer_result.get("question"),
+            "options": writer_result.get("options"),
+            "correctIndex": writer_result.get("correctIndex"),
+            "questionType": writer_result.get("questionType"),
+            "difficulty": writer_result.get("difficulty"),
+            "category": writer_result.get("category"),
+            "hashtags": writer_result.get("hashtags"),
+        }
+
+        judge_prompt = f"""
+You are the Judge in Amanoba QC.
+Return strict JSON only:
+{{
+  "accept": true,
+  "reason": "...",
+  "revisionNote": "...",
+  "j_conf": 0.0,
+  "j_impact": 0.0
+}}
+
+Accept only if:
+- target language is pure
+- question is structurally valid
+- scenario is concrete
+- distractors are plausible
+- output is clearly better than original
+
+Original:
+{json.dumps(question, ensure_ascii=False)}
+Candidate:
+{json.dumps(candidate, ensure_ascii=False)}
+Validation errors to fix:
+{json.dumps(validation_errors, ensure_ascii=False)}
+""".strip()
+        started = time.perf_counter()
+        judge_result = self._json_from_markdown_provider(judge, judge_prompt, max_tokens=400)
+        timings.append({"provider": f"{judge.name}:judge", "status": "success", "durationMs": int((time.perf_counter() - started) * 1000)})
+
+        d_conf = self._clamp_score(draft_breakdown.get("d_conf"), 0.65)
+        d_impact = self._clamp_score(draft_breakdown.get("d_impact"), 0.65)
+        w_conf = self._clamp_score(writer_result.get("w_conf"), 0.7)
+        w_impact = self._clamp_score(writer_result.get("w_impact"), 0.7)
+        j_conf = self._clamp_score(judge_result.get("j_conf"), 0.75)
+        j_impact = self._clamp_score(judge_result.get("j_impact"), 0.75)
+        trust_score = round(d_conf * w_conf * j_conf, 4)
+        impact_score = round(d_impact * w_impact * j_impact, 4)
+        validation = validate_question(candidate, str(course.get("language") or lesson.get("language") or ""))
+        accepted = bool(judge_result.get("accept")) and validation.is_valid and trust_score >= 0.35
+        return {
+            "provider": "specialist-pipeline",
+            "payload": candidate,
+            "validation": validation,
+            "accepted": accepted,
+            "trustScore": trust_score,
+            "impactScore": impact_score,
+            "judgeReason": str(judge_result.get("reason") or ""),
+            "revisionNote": str(judge_result.get("revisionNote") or ""),
+            "timings": timings,
+            "roles": {
+                "drafter": draft_breakdown,
+                "writer": writer_result,
+                "judge": judge_result,
+            },
+        }
+
+    def specialist_rewrite_lesson(
+        self,
+        course: dict[str, Any],
+        lesson: dict[str, Any],
+        validation_errors: list[str],
+        human_feedback: list[str] | None = None,
+    ) -> dict[str, Any]:
+        if not self.specialist_qc_available():
+            raise RuntimeError("Specialist QC pipeline is not available.")
+        feedback_rows = [str(item).strip() for item in (human_feedback or []) if str(item).strip()]
+        drafter = self.creator_provider("drafter")
+        writer = self.creator_provider("writer")
+        judge = self.creator_provider("judge")
+        timings: list[dict[str, Any]] = []
+
+        drafter_prompt = f"""
+You are the Drafter in Amanoba QC.
+Break this lesson into atomic rewrite guidance.
+Return strict JSON only:
+{{
+  "rewriteBrief": "one paragraph",
+  "atomicFocuses": ["...", "..."],
+  "risks": ["...", "..."],
+  "d_conf": 0.0,
+  "d_impact": 0.0
+}}
+
+Target language only: {_language_name(course.get("language") or lesson.get("language"))}
+Lesson:
+{json.dumps({'title': lesson.get('title'), 'content': lesson.get('content'), 'emailSubject': lesson.get('emailSubject'), 'emailBody': lesson.get('emailBody')}, ensure_ascii=False)}
+Validation errors:
+{json.dumps(validation_errors, ensure_ascii=False)}
+Human feedback:
+{json.dumps(feedback_rows, ensure_ascii=False)}
+""".strip()
+        started = time.perf_counter()
+        draft_breakdown = self._json_from_markdown_provider(drafter, drafter_prompt, max_tokens=700)
+        timings.append({"provider": f"{drafter.name}:drafter", "status": "success", "durationMs": int((time.perf_counter() - started) * 1000)})
+
+        writer_prompt = f"""
+You are the Writer in Amanoba QC.
+Return strict JSON only:
+{{
+  "title": "...",
+  "content": "...",
+  "emailSubject": "...",
+  "emailBody": "...",
+  "w_conf": 0.0,
+  "w_impact": 0.0
+}}
+
+Rules:
+- Use only {_language_name(course.get("language") or lesson.get("language"))}
+- Keep Markdown lesson structure
+- No mixed language
+- Improve clarity, usefulness, and flow
+
+Lesson:
+{json.dumps({'title': lesson.get('title'), 'content': lesson.get('content'), 'emailSubject': lesson.get('emailSubject'), 'emailBody': lesson.get('emailBody')}, ensure_ascii=False)}
+Rewrite brief:
+{json.dumps(draft_breakdown, ensure_ascii=False)}
+""".strip()
+        started = time.perf_counter()
+        writer_result = self._json_from_markdown_provider(writer, writer_prompt, max_tokens=1800)
+        timings.append({"provider": f"{writer.name}:writer", "status": "success", "durationMs": int((time.perf_counter() - started) * 1000)})
+
+        candidate = {
+            "title": writer_result.get("title"),
+            "content": writer_result.get("content"),
+            "emailSubject": writer_result.get("emailSubject"),
+            "emailBody": writer_result.get("emailBody"),
+        }
+
+        judge_prompt = f"""
+You are the Judge in Amanoba QC.
+Return strict JSON only:
+{{
+  "accept": true,
+  "reason": "...",
+  "revisionNote": "...",
+  "j_conf": 0.0,
+  "j_impact": 0.0
+}}
+
+Accept only if:
+- target language is pure
+- lesson structure is complete
+- lesson is clearly better than original
+- email copy is usable
+
+Original:
+{json.dumps({'title': lesson.get('title'), 'content': lesson.get('content'), 'emailSubject': lesson.get('emailSubject'), 'emailBody': lesson.get('emailBody')}, ensure_ascii=False)}
+Candidate:
+{json.dumps(candidate, ensure_ascii=False)}
+Validation errors to fix:
+{json.dumps(validation_errors, ensure_ascii=False)}
+""".strip()
+        started = time.perf_counter()
+        judge_result = self._json_from_markdown_provider(judge, judge_prompt, max_tokens=400)
+        timings.append({"provider": f"{judge.name}:judge", "status": "success", "durationMs": int((time.perf_counter() - started) * 1000)})
+
+        d_conf = self._clamp_score(draft_breakdown.get("d_conf"), 0.65)
+        d_impact = self._clamp_score(draft_breakdown.get("d_impact"), 0.65)
+        w_conf = self._clamp_score(writer_result.get("w_conf"), 0.7)
+        w_impact = self._clamp_score(writer_result.get("w_impact"), 0.7)
+        j_conf = self._clamp_score(judge_result.get("j_conf"), 0.75)
+        j_impact = self._clamp_score(judge_result.get("j_impact"), 0.75)
+        trust_score = round(d_conf * w_conf * j_conf, 4)
+        impact_score = round(d_impact * w_impact * j_impact, 4)
+        validation = audit_lesson(candidate, str(course.get("language") or lesson.get("language") or ""))
+        accepted = bool(judge_result.get("accept")) and validation.is_valid and trust_score >= 0.35
+        return {
+            "provider": "specialist-pipeline",
+            "payload": candidate,
+            "validation": validation,
+            "accepted": accepted,
+            "trustScore": trust_score,
+            "impactScore": impact_score,
+            "judgeReason": str(judge_result.get("reason") or ""),
+            "revisionNote": str(judge_result.get("revisionNote") or ""),
+            "timings": timings,
+            "roles": {
+                "drafter": draft_breakdown,
+                "writer": writer_result,
+                "judge": judge_result,
+            },
         }
 
     def _provider_names(self, preferred_order: list[str] | None = None) -> list[str]:
@@ -996,6 +1552,75 @@ class LocalRuntimeManager:
 
     def provider(self, name: str) -> BaseProvider | None:
         return self.providers.get(name)
+
+    def creator_provider(self, role: str) -> BaseProvider:
+        role_key = str(role or "").strip().lower()
+        provider = self.creator_role_providers.get(role_key)
+        if provider is not None:
+            return provider
+        if role_key == "judge":
+            return self.providers.get("none") or NullProvider()
+        return self.selected_provider()
+
+    def creator_role_health(self, role: str) -> dict[str, Any]:
+        provider = self.creator_provider(role)
+        health = provider.health().to_dict()
+        health["creatorRole"] = role
+        if isinstance(provider, MLXProvider):
+            health["residentServer"] = bool(provider.resident_server)
+            health["serverHost"] = provider.server_host
+            health["serverPort"] = provider.server_port
+            health["residentReadyAt"] = provider._resident_server_ready_at
+        return health
+
+    def _init_creator_role_providers(self) -> None:
+        creator_port_base = int(self.creator_pipeline.get("server_port_base") or 18101)
+        for index, role in enumerate(("drafter", "writer", "judge")):
+            role_config = dict(self.creator_pipeline.get(role) or {})
+            model = str(role_config.get("model") or "").strip()
+            provider_name = str(role_config.get("provider") or "").strip().lower()
+            if not provider_name and model:
+                provider_name = "mlx"
+            installed = bool(role_config.get("installed"))
+            if not installed and provider_name == "mlx" and os.path.exists(os.path.expanduser(model)):
+                installed = True
+            if provider_name == "validator":
+                self.creator_role_providers[role] = NullProvider()
+                continue
+            if installed and model:
+                server_port = int(role_config.get("server_port") or (creator_port_base + index))
+                self.creator_role_providers[role] = MLXProvider(
+                    model=model,
+                    timeout=int(role_config.get("timeout") or self.providers["mlx"].timeout),
+                    max_tokens=int(role_config.get("max_tokens") or self.providers["mlx"].max_tokens),
+                    temperature=float(role_config.get("temperature") or getattr(self.providers["mlx"], "temperature", 0.1)),
+                    lesson_max_tokens=int(role_config.get("lesson_max_tokens") or self.providers["mlx"].lesson_max_tokens),
+                    question_max_tokens=int(role_config.get("question_max_tokens") or self.providers["mlx"].question_max_tokens),
+                    normalizer_endpoint=str(role_config.get("normalizer_endpoint") or self.providers["mlx"].normalizer.endpoint),
+                    normalizer_model=str(role_config.get("normalizer_model") or self.providers["mlx"].normalizer.model),
+                    python_bin=str(role_config.get("python_bin") or self.providers["mlx"].python_bin),
+                    health_timeout=int(role_config.get("health_timeout") or self.providers["mlx"].health_timeout),
+                    cooldown_seconds=int(role_config.get("cooldown_seconds") or self.providers["mlx"].cooldown_seconds),
+                    max_consecutive_failures=int(role_config.get("max_consecutive_failures") or self.providers["mlx"].max_consecutive_failures),
+                    resident_server=bool(role_config.get("resident_server", True)),
+                    server_host=str(role_config.get("server_host") or "127.0.0.1"),
+                    server_port=server_port,
+                    server_startup_timeout=int(role_config.get("server_startup_timeout") or 240),
+                )
+            else:
+                self.creator_role_providers[role] = self.providers["none"]
+
+    def warm_creator_roles(self) -> dict[str, bool]:
+        results: dict[str, bool] = {}
+        for role, provider in self.creator_role_providers.items():
+            if isinstance(provider, MLXProvider) and provider.resident_server:
+                try:
+                    results[role] = provider.warm()
+                except Exception:
+                    results[role] = False
+            else:
+                results[role] = provider.health().available
+        return results
 
     def selected_provider(self) -> BaseProvider:
         for name in self.provider_order:
@@ -1205,7 +1830,9 @@ class LocalRuntimeManager:
     ) -> dict[str, Any]:
         context_artifacts = context_artifacts or {}
         source_pack = source_pack or []
-        provider = self.selected_provider()
+        role = self._creator_stage_role(stage_key)
+        provider = self.creator_provider(role)
+        provider_health = provider.health()
         prompt = _creator_stage_prompt(
             stage_key=stage_key,
             topic=topic,
@@ -1226,10 +1853,19 @@ class LocalRuntimeManager:
             content = provider.generate_markdown(prompt, max_tokens=max_tokens_by_stage.get(stage_key, 1800)).strip()
             if not content:
                 raise RuntimeError("Provider returned empty content.")
-            return {"provider": provider.name, "content": content}
+            return {
+                "provider": provider.name,
+                "role": role,
+                "model": str(provider_health.resolved_model or provider_health.configured_model or ""),
+                "status": provider_health.status,
+                "content": content,
+            }
         except Exception as exc:
             return {
                 "provider": "fallback",
+                "role": role,
+                "model": str(provider_health.resolved_model or provider_health.configured_model or ""),
+                "status": provider_health.status,
                 "content": _fallback_creator_stage_markdown(
                     stage_key=stage_key,
                     topic=topic,
@@ -1242,6 +1878,16 @@ class LocalRuntimeManager:
             ),
                 "warning": str(exc),
             }
+
+    def _creator_stage_role(self, stage_key: str) -> str:
+        stage = str(stage_key or "").strip().lower()
+        if stage in {"research", "blueprint"}:
+            return "drafter"
+        if stage in {"lesson_generation", "quiz_generation"}:
+            return "writer"
+        if stage in {"qc_review", "draft_to_live"}:
+            return "judge"
+        return "writer"
 
 
 def _creator_stage_prompt(

@@ -120,26 +120,28 @@ def _render_lesson_content_from_mapping(title: str, data: dict[str, Any]) -> str
     steps = data.get("steps") or []
     lines: list[str] = []
     if resolved_title:
-        lines.append(f"<h1>{resolved_title}</h1>")
+        lines.append(f"# {resolved_title}")
     if body:
-        lines.append(f"<p>{body}</p>")
+        lines.append("")
+        lines.append("## Learning goal")
+        lines.append(body)
     if isinstance(steps, list) and steps:
-        lines.append("<h2>Steps</h2>")
-        lines.append("<ol>")
-        for step in steps:
+        lines.append("")
+        lines.append("## Guided exercise")
+        for index, step in enumerate(steps, start=1):
             if not isinstance(step, dict):
                 continue
-            step_title = str(step.get("title") or "").strip()
+            step_title = str(step.get("title") or f"Step {index}").strip()
             step_desc = str(step.get("description") or "").strip()
             step_input = step.get("input")
             step_output = step.get("output")
-            parts = [step_title or "Step", step_desc]
+            lines.append(f"### {step_title}")
+            if step_desc:
+                lines.append(step_desc)
             if isinstance(step_input, dict) and step_input:
-                parts.append(f"Input: {json.dumps(step_input, ensure_ascii=False)}")
+                lines.append(f"- Input: {json.dumps(step_input, ensure_ascii=False)}")
             if isinstance(step_output, dict) and step_output:
-                parts.append(f"Output: {json.dumps(step_output, ensure_ascii=False)}")
-            lines.append(f"<li>{' '.join(item for item in parts if item)}</li>")
-        lines.append("</ol>")
+                lines.append(f"- Output: {json.dumps(step_output, ensure_ascii=False)}")
     if not lines:
         return ""
     return "\n".join(lines).strip()
@@ -182,6 +184,34 @@ def _looks_like_repairable_content_error(message: str) -> bool:
         or "rejected invalid question draft" in lower
         or "rejected invalid lesson draft" in lower
     )
+
+
+DEFAULT_CREATOR_PIPELINE = {
+    "drafter": {
+        "tool": "MLX-LM",
+        "model": "Gemma 3 270M",
+        "label": "Gemma 3 270M",
+        "provider": "mlx",
+        "statusLabel": "drafting",
+        "description": "Decomposes source material into atomic draft pieces and initial structure.",
+    },
+    "writer": {
+        "tool": "MLX-LM",
+        "model": "Granite 4.0 350M (H-variant)",
+        "label": "Granite 4.0 350M (H-variant)",
+        "provider": "mlx",
+        "statusLabel": "enriching",
+        "description": "Expands the draft into fluent, structured, publication-ready content.",
+    },
+    "judge": {
+        "tool": "MLX-LM",
+        "model": "Qwen 2.5 0.5B",
+        "label": "Qwen 2.5 0.5B",
+        "provider": "mlx",
+        "statusLabel": "judging",
+        "description": "Checks structure, language, and quality gates before acceptance.",
+    },
+}
 
 
 LESSON_LANGUAGE_PACKS: dict[str, dict[str, str]] = {
@@ -718,6 +748,54 @@ class StateStore:
             },
         }
 
+    def _creator_stage_contracts(self) -> dict[str, dict[str, Any]]:
+        return {
+            "research": {
+                "owner": "drafter",
+                "requiredKeys": ["title", "format", "content"],
+                "optionalKeys": ["updatedAt", "provenance", "notes"],
+                "rejectWhen": ["empty content", "mixed language", "missing source grounding"],
+            },
+            "blueprint": {
+                "owner": "drafter",
+                "requiredKeys": ["title", "format", "content"],
+                "optionalKeys": ["updatedAt", "provenance", "notes"],
+                "rejectWhen": ["non-30-day structure", "mixed language", "generic outline"],
+            },
+            "lesson_generation": {
+                "owner": "writer",
+                "requiredKeys": ["title", "format", "content", "emailSubject", "emailBody"],
+                "optionalKeys": ["updatedAt", "provenance", "notes"],
+                "rejectWhen": ["missing canonical blocks", "mixed language", "too short"],
+            },
+            "quiz_generation": {
+                "owner": "writer",
+                "requiredKeys": ["title", "format", "content"],
+                "optionalKeys": ["updatedAt", "provenance", "notes"],
+                "rejectWhen": ["weak distractors", "template leakage", "too short"],
+            },
+            "qc_review": {
+                "owner": "judge",
+                "requiredKeys": ["title", "format", "content"],
+                "optionalKeys": ["generatedAt", "provenance", "notes", "qcPlan"],
+                "rejectWhen": ["unvalidated handoff", "missing qc tasks", "empty review"],
+            },
+            "draft_to_live": {
+                "owner": "judge",
+                "requiredKeys": ["title", "format", "content"],
+                "optionalKeys": ["generatedAt", "provenance", "notes", "draftToLiveJudge"],
+                "rejectWhen": ["unfinished qc", "missing import status", "missing publish readiness"],
+            },
+        }
+
+    def _creator_stage_retry_policy(self) -> dict[str, Any]:
+        return {
+            "maxAttempts": 5,
+            "stopWhenNoProgress": True,
+            "stopWhenFailureRepeats": True,
+            "feedbackFlow": ["user->judge", "judge->writer", "writer->drafter"],
+        }
+
     def create_creator_run(self, topic: str, target_language: str, research_mode: str) -> dict[str, Any]:
         clean_topic = topic.strip()
         clean_language = target_language.strip().lower()
@@ -760,6 +838,9 @@ class StateStore:
             "stages": self._creator_stage_template(),
             "notes": [],
             "stageArtifacts": self._creator_stage_artifacts(clean_topic, clean_language, clean_research),
+            "stageContracts": self._creator_stage_contracts(),
+            "retryPolicy": self._creator_stage_retry_policy(),
+            "stageAttempts": {},
             "draftSummary": {
                 "courseTitleCandidate": clean_topic,
                 "targetLanguage": clean_language,
@@ -1125,6 +1206,52 @@ class StateStore:
             self.conn.commit()
             return recovered
 
+    def archive_non_english_tasks(self, allowed_language: str = "en") -> int:
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT task_key, details_json FROM tasks WHERE lower(coalesce(language, '')) != ? AND status IN ('pending', 'running')",
+                (allowed_language.lower(),),
+            ).fetchall()
+            if not rows:
+                return 0
+            now = utc_now()
+            archived = 0
+            for row in rows:
+                details: dict[str, Any] = {}
+                if row["details_json"]:
+                    try:
+                        loaded = json.loads(row["details_json"])
+                        if isinstance(loaded, dict):
+                            details = loaded
+                    except json.JSONDecodeError:
+                        details = {"raw": row["details_json"]}
+                details["archivedByPolicy"] = {
+                    "reason": f"English-only QC mode; skipped because language != {allowed_language}",
+                    "archivedAt": now,
+                }
+                self.conn.execute(
+                    """
+                    UPDATE tasks
+                    SET status='archived',
+                        details_json=?,
+                        last_error=?,
+                        started_at=NULL,
+                        finished_at=?,
+                        updated_at=?
+                    WHERE task_key=?
+                    """,
+                    (
+                        json.dumps(details, ensure_ascii=False),
+                        f"Archived by English-only QC mode: language != {allowed_language}",
+                        now,
+                        now,
+                        row["task_key"],
+                    ),
+                )
+                archived += 1
+            self.conn.commit()
+            return archived
+
     def save_package(self, path: str, fingerprint: str, course_id: str, language: str) -> None:
         with self._lock:
             self.conn.execute(
@@ -1264,7 +1391,7 @@ class StateStore:
                     self.conn.commit()
                     return None
                 task = self.conn.execute(
-                    "SELECT task_key FROM tasks WHERE status='pending' AND attempts < ? ORDER BY priority DESC, attempts ASC, updated_at ASC, created_at ASC LIMIT 1",
+                    "SELECT task_key FROM tasks WHERE status='pending' AND attempts < ? AND lower(coalesce(language, ''))='en' ORDER BY priority DESC, attempts ASC, updated_at ASC, created_at ASC LIMIT 1",
                     (max_attempts,),
                 ).fetchone()
                 if task is None:
@@ -1292,6 +1419,26 @@ class StateStore:
                 (now, now, task_key),
             )
             self.conn.commit()
+            return self.conn.execute("SELECT * FROM tasks WHERE task_key=?", (task_key,)).fetchone()
+
+    def ensure_running(self, task_key: str) -> sqlite3.Row | None:
+        with self._lock:
+            now = utc_now()
+            row = self.conn.execute(
+                "SELECT status, started_at, finished_at FROM tasks WHERE task_key=?",
+                (task_key,),
+            ).fetchone()
+            if row is None:
+                return None
+            status = str(row["status"] or "").strip().lower()
+            if status in {"completed", "failed", "quarantined", "archived"}:
+                return self.conn.execute("SELECT * FROM tasks WHERE task_key=?", (task_key,)).fetchone()
+            if status != "running" or not str(row["started_at"] or "").strip():
+                self.conn.execute(
+                    "UPDATE tasks SET status='running', started_at=COALESCE(started_at, ?), updated_at=? WHERE task_key=?",
+                    (now, now, task_key),
+                )
+                self.conn.commit()
             return self.conn.execute("SELECT * FROM tasks WHERE task_key=?", (task_key,)).fetchone()
 
     def mark_completed(self, task_key: str, details: dict[str, Any]) -> None:
@@ -1413,40 +1560,54 @@ class StateStore:
 
     def counts(self) -> dict[str, int]:
         with self._lock:
-            rows = self.conn.execute("SELECT status, COUNT(*) AS count FROM tasks GROUP BY status").fetchall()
+            rows = self.conn.execute(
+                "SELECT status, COUNT(*) AS count FROM tasks WHERE lower(coalesce(language, ''))='en' GROUP BY status"
+            ).fetchall()
             return {row["status"]: int(row["count"]) for row in rows}
 
     def feed_snapshot(self, limit: int) -> dict[str, Any]:
-        completed_count = self.count_by_status("completed")
-        failed_rows = self._query_failed_column_rows(FAILED_COLUMN_LIMIT)
-        quarantined_rows = self._query_tasks("quarantined", "updated_at DESC", QUARANTINED_COLUMN_LIMIT)
+        completed_count = self.count_by_status("completed", language="en")
+        failed_rows = self._query_failed_column_rows(FAILED_COLUMN_LIMIT, language="en")
+        quarantined_rows = self._query_tasks("quarantined", "updated_at DESC", QUARANTINED_COLUMN_LIMIT, language="en")
         return {
             "generatedAt": utc_now(),
             "counts": self.counts(),
-            "queued": [self._row_to_summary(row) for row in self._query_tasks("pending", "updated_at ASC", limit)],
-            "running": [self._row_to_summary(row) for row in self._query_tasks("running", "started_at ASC", limit)],
-            "completed": [self._row_to_summary(row) for row in self._query_tasks("completed", "finished_at DESC", DONE_COLUMN_LIMIT)],
+            "queued": [self._row_to_summary(row) for row in self._query_tasks("pending", "updated_at ASC", limit, language="en")],
+            "running": [self._row_to_summary(row) for row in self._query_tasks("running", "started_at ASC", limit, language="en")],
+            "completed": [self._row_to_summary(row) for row in self._query_tasks("completed", "finished_at DESC", DONE_COLUMN_LIMIT, language="en")],
             "failed": [self._row_to_summary(row) for row in failed_rows],
             "failedCount": len(failed_rows),
             "quarantined": [self._row_to_summary(row) for row in quarantined_rows],
             "quarantinedCount": len(quarantined_rows),
-            "archived": [self._row_to_summary(row) for row in self._query_tasks_offset("completed", "finished_at DESC", ARCHIVED_COLUMN_LIMIT, DONE_COLUMN_LIMIT)],
+            "archived": [self._row_to_summary(row) for row in self._query_tasks_offset("completed", "finished_at DESC", ARCHIVED_COLUMN_LIMIT, DONE_COLUMN_LIMIT, language="en")],
             "archivedCount": max(0, completed_count - DONE_COLUMN_LIMIT),
         }
 
-    def count_by_status(self, status: str) -> int:
+    def count_by_status(self, status: str, language: str | None = None) -> int:
         with self._lock:
-            row = self.conn.execute("SELECT COUNT(*) AS count FROM tasks WHERE status=?", (status,)).fetchone()
+            if language is None:
+                row = self.conn.execute("SELECT COUNT(*) AS count FROM tasks WHERE status=?", (status,)).fetchone()
+            else:
+                row = self.conn.execute(
+                    "SELECT COUNT(*) AS count FROM tasks WHERE status=? AND lower(coalesce(language, ''))=?",
+                    (status, language.lower()),
+                ).fetchone()
             return int(row["count"]) if row else 0
 
-    def _query_tasks(self, status: str, order_by: str, limit: int) -> list[sqlite3.Row]:
-        query = f"SELECT * FROM tasks WHERE status=? ORDER BY {order_by} LIMIT ?"
+    def _query_tasks(self, status: str, order_by: str, limit: int, language: str | None = None) -> list[sqlite3.Row]:
+        if language is None:
+            query = f"SELECT * FROM tasks WHERE status=? ORDER BY {order_by} LIMIT ?"
+            params: tuple[Any, ...] = (status, limit)
+        else:
+            query = f"SELECT * FROM tasks WHERE status=? AND lower(coalesce(language, ''))=? ORDER BY {order_by} LIMIT ?"
+            params = (status, language.lower(), limit)
         with self._lock:
-            return self.conn.execute(query, (status, limit)).fetchall()
+            return self.conn.execute(query, params).fetchall()
 
-    def _query_failed_column_rows(self, limit: int) -> list[sqlite3.Row]:
+    def _query_failed_column_rows(self, limit: int, language: str | None = None) -> list[sqlite3.Row]:
         with self._lock:
-            return self.conn.execute(
+            if language is None:
+                return self.conn.execute(
                 """
                 SELECT *
                 FROM tasks
@@ -1457,11 +1618,30 @@ class StateStore:
                 """,
                 (limit,),
             ).fetchall()
+            return self.conn.execute(
+                """
+                SELECT *
+                FROM tasks
+                WHERE lower(coalesce(language, ''))=?
+                  AND (
+                       status='failed'
+                   OR (status='pending' AND last_error IS NOT NULL AND last_error NOT LIKE 'Reopened:%')
+                  )
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (language.lower(), limit),
+            ).fetchall()
 
-    def _query_tasks_offset(self, status: str, order_by: str, limit: int, offset: int) -> list[sqlite3.Row]:
-        query = f"SELECT * FROM tasks WHERE status=? ORDER BY {order_by} LIMIT ? OFFSET ?"
+    def _query_tasks_offset(self, status: str, order_by: str, limit: int, offset: int, language: str | None = None) -> list[sqlite3.Row]:
+        if language is None:
+            query = f"SELECT * FROM tasks WHERE status=? ORDER BY {order_by} LIMIT ? OFFSET ?"
+            params: tuple[Any, ...] = (status, limit, offset)
+        else:
+            query = f"SELECT * FROM tasks WHERE status=? AND lower(coalesce(language, ''))=? ORDER BY {order_by} LIMIT ? OFFSET ?"
+            params = (status, language.lower(), limit, offset)
         with self._lock:
-            return self.conn.execute(query, (status, limit, offset)).fetchall()
+            return self.conn.execute(query, params).fetchall()
 
     def _row_to_summary(self, row: sqlite3.Row) -> dict[str, Any]:
         details: dict[str, Any] = {}
@@ -1608,6 +1788,51 @@ class StateStore:
             self.conn.commit()
             return updated
 
+    def quarantine_legacy_timeout_failures(self) -> list[str]:
+        with self._lock:
+            rows = self.conn.execute(
+                """
+                SELECT task_key, attempts, last_error, details_json
+                FROM tasks
+                WHERE status='pending'
+                  AND attempts >= 1
+                  AND last_error IS NOT NULL
+                  AND lower(last_error) LIKE '%timeout%'
+                """
+            ).fetchall()
+            now = utc_now()
+            updated: list[str] = []
+            for row in rows:
+                details: dict[str, Any] = {}
+                if row["details_json"]:
+                    try:
+                        loaded = json.loads(row["details_json"])
+                        if isinstance(loaded, dict):
+                            details = loaded
+                    except json.JSONDecodeError:
+                        details = {}
+                details["humanActionRequired"] = True
+                details["quarantine"] = {
+                    "status": "active",
+                    "reason": str(row["last_error"] or ""),
+                    "quarantinedAt": now,
+                    "attempts": int(row["attempts"] or 0),
+                }
+                self.conn.execute(
+                    """
+                    UPDATE tasks
+                    SET status='quarantined',
+                        details_json=?,
+                        finished_at=COALESCE(finished_at, ?),
+                        updated_at=?
+                    WHERE task_key=?
+                    """,
+                    (json.dumps(details, ensure_ascii=False), now, now, row["task_key"]),
+                )
+                updated.append(str(row["task_key"]))
+            self.conn.commit()
+            return updated
+
     def search_completed(self, query: str, limit: int = ARCHIVED_COLUMN_LIMIT) -> list[dict[str, Any]]:
         q = f"%{query.strip()}%"
         with self._lock:
@@ -1658,14 +1883,14 @@ class StateStore:
                 UPDATE tasks
                 SET status='pending',
                     attempts=0,
-                    last_error=NULL,
+                    last_error=?,
                     started_at=NULL,
                     finished_at=NULL,
                     details_json=?,
                     updated_at=?
                 WHERE task_key=?
                 """,
-                (json.dumps(details, ensure_ascii=False), now, task_key),
+                (f"Reopened: {clean}", json.dumps(details, ensure_ascii=False), now, task_key),
             )
             self.conn.commit()
         return self.task_detail(task_key)
@@ -1798,6 +2023,18 @@ class CourseQualityDaemon:
         if self.manage_worker_heartbeat:
             self._write_heartbeat_file()
 
+    def _creator_stage_template(self) -> list[dict[str, str]]:
+        return self.state._creator_stage_template()
+
+    def _creator_stage_artifacts(self, topic: str, target_language: str, research_mode: str) -> dict[str, dict[str, Any]]:
+        return self.state._creator_stage_artifacts(topic, target_language, research_mode)
+
+    def _creator_stage_contracts(self) -> dict[str, dict[str, Any]]:
+        return self.state._creator_stage_contracts()
+
+    def _creator_stage_retry_policy(self) -> dict[str, Any]:
+        return self.state._creator_stage_retry_policy()
+
     def _write_json_atomic(self, path: Path, payload: dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(f"{path.suffix}.{os.getpid()}.{threading.get_ident()}.tmp")
@@ -1837,9 +2074,46 @@ class CourseQualityDaemon:
                     self._heartbeat_state["taskStartedAt"] = now
             else:
                 self._heartbeat_state["taskStartedAt"] = None
-            if extra:
-                self._heartbeat_state.update(extra)
+        if extra:
+            self._heartbeat_state.update(extra)
         self._write_heartbeat_file()
+
+    def _task_checkpoint(self, task_key: str | None, message: str) -> None:
+        if task_key:
+            try:
+                self.state.ensure_running(task_key)
+            except Exception:
+                pass
+        self._set_heartbeat(
+            "processing",
+            task_key=task_key,
+            message=message,
+            advance_progress=True,
+        )
+
+    def _start_task_progress_pulse(self, task_key: str | None, message: str, interval_seconds: int = 20) -> tuple[threading.Event, threading.Thread] | None:
+        if not task_key:
+            return None
+        stop = threading.Event()
+
+        def _loop() -> None:
+            while not stop.wait(max(5, int(interval_seconds))):
+                try:
+                    self._task_checkpoint(task_key, message)
+                except Exception:
+                    continue
+
+        thread = threading.Thread(target=_loop, name=f"course-quality-pulse-{task_key}", daemon=True)
+        thread.start()
+        return stop, thread
+
+    def _stop_task_progress_pulse(self, pulse: tuple[threading.Event, threading.Thread] | None) -> None:
+        if not pulse:
+            return
+        stop, thread = pulse
+        stop.set()
+        if thread.is_alive():
+            thread.join(timeout=1)
 
     def _clear_heartbeat_task(self, phase: str, message: str) -> None:
         self._set_heartbeat(phase, task_key=None, message=message, advance_progress=True)
@@ -1878,11 +2152,64 @@ class CourseQualityDaemon:
         with self._heartbeat_lock:
             return dict(self._heartbeat_state)
 
+    def _worker_state_snapshot(self) -> dict[str, Any]:
+        worker = self.worker_status_snapshot()
+        phase = str(worker.get("phase") or "").strip().lower() or "idle"
+        task_key = str(worker.get("taskKey") or "").strip() or None
+        heartbeat_at = str(worker.get("heartbeatAt") or "").strip()
+        progress_at = str(worker.get("progressAt") or "").strip()
+        state = "idle"
+        stalled = False
+        stalled_seconds = None
+        if phase == "processing" and task_key:
+            state = "working"
+            if progress_at:
+                try:
+                    progress_dt = datetime.fromisoformat(progress_at.replace("Z", "+00:00"))
+                    age = (datetime.now(timezone.utc) - progress_dt).total_seconds()
+                    threshold = float(getattr(self.config, "worker_progress_timeout_seconds", 0) or 0)
+                    if threshold <= 0:
+                        try:
+                            watchdog = json.loads(self.config.config_path.read_text(encoding="utf-8")).get("watchdog") or {}
+                            threshold = float(watchdog.get("worker_progress_timeout_seconds") or 180)
+                        except Exception:
+                            threshold = 180.0
+                    if age >= threshold:
+                        stalled = True
+                        state = "stalled"
+                        stalled_seconds = int(age)
+                except Exception:
+                    pass
+        return {
+            "state": state,
+            "stalled": stalled,
+            "stalledSeconds": stalled_seconds,
+            "phase": phase,
+            "taskKey": task_key,
+            "heartbeatAt": heartbeat_at,
+            "progressAt": progress_at,
+        }
+
     def _recover_orphan_running_tasks(self, *, reason: str) -> int:
         worker = self.worker_status_snapshot()
         phase = str(worker.get("phase") or "").strip().lower()
         active_task = str(worker.get("taskKey") or "").strip()
-        if phase == "processing" and active_task:
+        progress_at = str(worker.get("progressAt") or "").strip()
+        stalled_seconds = None
+        if progress_at:
+            try:
+                progress_dt = datetime.fromisoformat(progress_at.replace("Z", "+00:00"))
+                stalled_seconds = int((datetime.now(timezone.utc) - progress_dt).total_seconds())
+            except Exception:
+                stalled_seconds = None
+        threshold = float(getattr(self.config, "worker_progress_timeout_seconds", 0) or 0)
+        if threshold <= 0:
+            try:
+                watchdog = json.loads(self.config.config_path.read_text(encoding="utf-8")).get("watchdog") or {}
+                threshold = float(watchdog.get("worker_progress_timeout_seconds") or 180)
+            except Exception:
+                threshold = 180.0
+        if phase == "processing" and active_task and stalled_seconds is not None and stalled_seconds < threshold:
             return 0
         running = self.state.count_by_status("running")
         if running <= 0:
@@ -2019,14 +2346,19 @@ class CourseQualityDaemon:
             recovered = self._recover_orphan_running_tasks(reason="before-claim")
             if recovered:
                 self._set_heartbeat("selecting", message=f"Recovered {recovered} orphan running task(s) before selection.", advance_progress=True)
+            archived = self.state.archive_non_english_tasks("en")
+            if archived:
+                self._set_heartbeat("selecting", message=f"Archived {archived} non-English QC task(s) in English-only mode.", advance_progress=True)
             self.state.quarantine_repeated_failures(self.config.quarantine_after_failures)
-            task = self.state.claim_next_task(self.config.max_attempts_per_task)
+            self.state.quarantine_legacy_timeout_failures()
+            task = self._claim_next_eligible_task(self.config.max_attempts_per_task)
             if task is None and self.config.source_mode == "amanoba_live_db":
                 for _ in range(max(1, self.config.live_batch_passes)):
                     self._set_heartbeat("scanning", message="Scanning live DB for more QC work.", advance_progress=True)
                     scan_result = self._scan_live()
                     self.state.quarantine_repeated_failures(self.config.quarantine_after_failures)
-                    task = self.state.claim_next_task(self.config.max_attempts_per_task)
+                    self.state.quarantine_legacy_timeout_failures()
+                    task = self._claim_next_eligible_task(self.config.max_attempts_per_task)
                     if task is not None:
                         break
                     if int(scan_result.get("batchSize") or 0) <= 0:
@@ -2035,7 +2367,7 @@ class CourseQualityDaemon:
                 recovered = self._recover_orphan_running_tasks(reason="after-scan")
                 if recovered:
                     self._set_heartbeat("selecting", message=f"Recovered {recovered} orphan running task(s) after scan.", advance_progress=True)
-                    task = self.state.claim_next_task(self.config.max_attempts_per_task)
+                    task = self._claim_next_eligible_task(self.config.max_attempts_per_task)
             if task is None:
                 self._clear_heartbeat_task("idle", "No QC task available.")
                 self._write_reports()
@@ -2078,14 +2410,18 @@ class CourseQualityDaemon:
                 if isinstance(partial_details, dict):
                     existing_details.update(partial_details)
                 incident = self._build_failure_incident(task, exc, attempts, existing_details)
+                rca_type = str((incident.get("rca") or {}).get("type") or "").strip().lower()
+                quarantine_after_failures = self.config.quarantine_after_failures
+                if rca_type in {"timeout", "live-bridge-timeout"}:
+                    quarantine_after_failures = 1
                 next_status = self.state.mark_failed_with_policy(
                     task["task_key"],
                     attempts=attempts,
                     max_attempts=self.config.max_attempts_per_task,
                     error=str(exc),
-                    quarantine_after_failures=self.config.quarantine_after_failures,
+                    quarantine_after_failures=quarantine_after_failures,
                     details=incident,
-                    suppress_quarantine=str(((incident.get("rca") or {}).get("type") or "")).strip().lower() == "repairable-content",
+                    suppress_quarantine=rca_type == "repairable-content",
                 )
                 self._record_system_feedback(task["task_key"], incident, next_status)
                 self._clear_heartbeat_task("idle", f"{task['task_key']} moved to {next_status}.")
@@ -2359,6 +2695,63 @@ class CourseQualityDaemon:
         except Exception:
             return
 
+    def _bootout_launch_agent(self, label: str) -> None:
+        uid = str(os.getuid())
+        try:
+            subprocess.run(["launchctl", "bootout", f"gui/{uid}/{label}"], check=False, capture_output=True)
+        except Exception:
+            return
+
+    def _launch_agent_path(self, label: str) -> Path | None:
+        launch_dir = Path.home() / "Library" / "LaunchAgents"
+        candidate = launch_dir / f"{label}.plist"
+        return candidate if candidate.exists() else None
+
+    def restart_services(self, reason: str | None = None) -> dict[str, Any]:
+        labels = [
+            "com.amanoba.coursequality.worker",
+            "com.amanoba.coursequality.dashboard",
+            "com.amanoba.coursequality.watchdog",
+            "com.amanoba.coursequality.ollama",
+        ]
+        actions: list[dict[str, Any]] = []
+        for label in labels:
+            self._bootout_launch_agent(label)
+            actions.append({"label": label, "action": "bootout"})
+        for label in labels:
+            plist = self._launch_agent_path(label)
+            if plist is None:
+                actions.append({"label": label, "action": "bootstrap", "status": "skipped"})
+                continue
+            try:
+                subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(plist)], check=False, capture_output=True)
+                subprocess.run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/{label}"], check=False, capture_output=True)
+                actions.append({"label": label, "action": "bootstrap", "status": "ok"})
+            except Exception as exc:
+                actions.append({"label": label, "action": "bootstrap", "status": "error", "error": str(exc)})
+        return {
+            "ok": True,
+            "reason": reason or "restart-services",
+            "actions": actions,
+        }
+
+    def shutdown_services(self, reason: str | None = None) -> dict[str, Any]:
+        labels = [
+            "com.amanoba.coursequality.worker",
+            "com.amanoba.coursequality.dashboard",
+            "com.amanoba.coursequality.watchdog",
+            "com.amanoba.coursequality.ollama",
+        ]
+        actions: list[dict[str, Any]] = []
+        for label in labels:
+            self._bootout_launch_agent(label)
+            actions.append({"label": label, "action": "bootout"})
+        return {
+            "ok": True,
+            "reason": reason or "shutdown-services",
+            "actions": actions,
+        }
+
     def run_daemon(self) -> None:
         self._set_heartbeat("starting", message="Starting single-process QC worker.", advance_progress=True)
         self._start_heartbeat_loop()
@@ -2372,6 +2765,9 @@ class CourseQualityDaemon:
                 recovered = self._recover_orphan_running_tasks(reason="daemon-loop")
                 if recovered:
                     self._set_heartbeat("selecting", message=f"Recovered {recovered} orphan running task(s) in daemon loop.", advance_progress=True)
+                archived = self.state.archive_non_english_tasks("en")
+                if archived:
+                    self._set_heartbeat("selecting", message=f"Archived {archived} non-English QC task(s) in English-only mode.", advance_progress=True)
                 self.state.recover_stale_running_tasks(
                     max_runtime_seconds=self.config.max_task_runtime_seconds,
                     max_attempts=self.config.max_attempts_per_task,
@@ -2400,6 +2796,7 @@ class CourseQualityDaemon:
     def health_snapshot(self) -> dict[str, Any]:
         profiles = {name: self._power_profile_with_effective_limits(profile) for name, profile in self.power_profiles().items()}
         active_profile = self._power_profile_with_effective_limits(dict(self.config.runtime_config.get("ollama") or {}))
+        worker_state = self._worker_state_snapshot()
         return {
             "generatedAt": utc_now(),
             "runtime": self.runtime.health_snapshot(),
@@ -2411,7 +2808,9 @@ class CourseQualityDaemon:
             "counts": self.state.counts(),
             "inventory": self.live_inventory_counts(),
             "worker": self.worker_status_snapshot(),
-            "workspaceRoot": str(self.config.workspace_root),
+            "workerState": worker_state,
+            "roles": self._role_status_snapshot(worker_state),
+            "creatorPipeline": self._creator_pipeline_manifest(),
             "dashboard": {
                 "host": self.config.dashboard_host,
                 "port": self.config.dashboard_port,
@@ -2442,6 +2841,7 @@ class CourseQualityDaemon:
                 "profile": active_profile,
             }
         counts_snapshot = self.state.counts()
+        worker_state = self._worker_state_snapshot()
         return {
             "generatedAt": utc_now(),
             "runtime": runtime_snapshot,
@@ -2449,12 +2849,118 @@ class CourseQualityDaemon:
             "counts": counts_snapshot,
             "inventory": dict(cached.get("inventory") or {}),
             "worker": self.worker_status_snapshot(),
-            "workspaceRoot": str(self.config.workspace_root),
+            "workerState": worker_state,
+            "roles": self._role_status_snapshot(worker_state),
             "dashboard": {
                 "host": self.config.dashboard_host,
                 "port": self.config.dashboard_port,
                 "url": f"http://{self.config.dashboard_host}:{self.config.dashboard_port}",
             },
+            "creatorPipeline": self._creator_pipeline_manifest(),
+        }
+
+    def _creator_pipeline_manifest(self) -> dict[str, Any]:
+        configured = dict(self.config.runtime_config.get("creator_pipeline") or {})
+        manifest: dict[str, Any] = {}
+        for role, defaults in DEFAULT_CREATOR_PIPELINE.items():
+            role_config = dict(configured.get(role) or {})
+            configured_model = str(role_config.get("model") or defaults["model"]).strip()
+            installed, location = self._creator_model_install_status(configured_model, defaults.get("provider"))
+            manifest[role] = {
+                "tool": str(role_config.get("tool") or defaults["tool"]),
+                "model": configured_model,
+                "label": str(role_config.get("label") or defaults.get("label") or configured_model),
+                "statusLabel": str(role_config.get("statusLabel") or defaults["statusLabel"]),
+                "description": str(role_config.get("description") or defaults["description"]),
+                "installed": installed,
+                "resident_server": bool(role_config.get("resident_server", defaults.get("resident_server", False))),
+                "server_host": str(role_config.get("server_host") or defaults.get("server_host") or "127.0.0.1"),
+                "server_port": int(role_config.get("server_port") or defaults.get("server_port") or 0),
+                "location": location,
+                "state": "available" if installed else "missing",
+            }
+        return manifest
+
+    def _creator_model_install_status(self, model_name: str, provider: str | None) -> tuple[bool, str]:
+        normalized = str(model_name or "").strip()
+        if not normalized:
+            return False, ""
+        provider_name = str(provider or "").strip().lower()
+        if provider_name == "mlx":
+            path = Path(normalized)
+            if path.exists():
+                return True, str(path)
+            return False, str(path)
+        if provider_name == "worker":
+            return True, "course_quality_daemon worker"
+        if provider_name == "validator":
+            return True, "local validator"
+        # generic local cache lookup for named models
+        cache_root = Path.home() / ".cache" / "huggingface" / "hub"
+        matches = list(cache_root.glob(f"models--*--{normalized}"))
+        if matches:
+            return True, str(matches[0])
+        return False, ""
+
+    def _role_status_snapshot(self, worker_state: dict[str, Any]) -> dict[str, Any]:
+        pipeline = self._creator_pipeline_manifest()
+        worker_phase = str(worker_state.get("phase") or "idle").strip().lower() or "idle"
+        worker_label = "working" if worker_state.get("state") == "working" else ("stalled" if worker_state.get("stalled") else "idle")
+        role_names = ("drafter", "writer", "judge")
+
+        def _role_snapshot(role: str) -> dict[str, Any]:
+            pipeline_item = dict(pipeline.get(role) or {})
+            health = dict(self.runtime.creator_role_health(role) or {})
+            requested_model = str(pipeline_item.get("label") or pipeline_item.get("model") or "").strip()
+            runtime_model = str(health.get("resolvedModel") or health.get("configuredModel") or "").strip()
+            runtime_provider = str(health.get("provider") or pipeline_item.get("provider") or "").strip()
+            installed = bool(pipeline_item.get("installed"))
+            available = bool(health.get("available"))
+            status = str(health.get("status") or ("MISSING" if not installed else "UNKNOWN")).upper()
+            if not installed:
+                status = "MISSING"
+            detail_bits = [str(health.get("detail") or "").strip()]
+            if requested_model and runtime_model and requested_model != runtime_model:
+                detail_bits.append(f"runtime: {runtime_model}")
+            elif runtime_model and not detail_bits[0]:
+                detail_bits.append(f"runtime: {runtime_model}")
+            detail_bits = [bit for bit in detail_bits if bit]
+            detail = " | ".join(detail_bits) or str(pipeline_item.get("description") or "")
+            state = "available" if installed and available else ("missing" if not installed else ("degraded" if status in {"DEGRADED", "UNAVAILABLE"} else "available"))
+            return {
+                "provider": runtime_provider or str(pipeline_item.get("provider") or ""),
+                "status": status,
+                "detail": detail,
+                "available": installed and available,
+                "tool": pipeline_item.get("tool"),
+                "model": requested_model,
+                "label": requested_model,
+                "runtimeProvider": runtime_provider,
+                "runtimeModel": runtime_model,
+                "recommendedModel": requested_model,
+                "installed": installed,
+                "location": str(pipeline_item.get("location") or runtime_model or requested_model or ""),
+                "state": state,
+                "description": pipeline_item.get("description"),
+            }
+
+        def _judge_snapshot() -> dict[str, Any]:
+            snapshot = _role_snapshot("judge")
+            if worker_state.get("stalled"):
+                snapshot["status"] = "DEGRADED"
+                snapshot["detail"] = "QC worker stalled."
+                snapshot["available"] = False
+                snapshot["state"] = "degraded"
+            return snapshot
+
+        return {
+            "drafter": _role_snapshot("drafter") | {
+                "workerPhase": worker_phase,
+                "workerState": worker_label,
+            },
+            "writer": _role_snapshot("writer"),
+            "judge": _judge_snapshot(),
+            "pipeline": pipeline,
         }
 
     def creator_runs_snapshot(self, limit: int = 12) -> dict[str, Any]:
@@ -2658,6 +3164,7 @@ class CourseQualityDaemon:
             raise ValueError("Creator run not found.")
         active_stage = str(detail.get("activeStage") or detail.get("currentStage") or "").strip()
         clean_action = action.strip().lower()
+        clean_comment = str(comment or "").strip()
         if clean_action == "accept":
             self._creator_assert_stage_acceptance_ready(detail, active_stage)
         if clean_action == "accept" and active_stage == "qc_review":
@@ -2680,8 +3187,118 @@ class CourseQualityDaemon:
             publish_status = dict(((detail.get("payload") or {}).get("publishStatus") or {}))
             if publish_status.get("status") != "published-live":
                 raise ValueError("Publish the imported draft in Amanoba before accepting Draft To Live.")
-        updated = self.state.creator_action(run_id, action, comment)
+        if clean_action == "delete":
+            updated = self.state.creator_action(run_id, action, clean_comment)
+            return self._enrich_creator_run(updated)
+        if clean_action == "accept":
+            updated = self.state.creator_action(run_id, action, clean_comment)
+            enriched = self._enrich_creator_run(updated)
+            next_stage = str(enriched.get("activeStage") or "").strip()
+            if next_stage and next_stage in {"blueprint", "lesson_generation", "quiz_generation", "qc_review", "draft_to_live"}:
+                try:
+                    return self.creator_generate_artifact(run_id, next_stage, "")
+                except Exception:
+                    return self.creator_run_detail(run_id) or enriched
+            return enriched
+        if clean_action == "update":
+            target_stage = self._creator_previous_stage_key(detail, active_stage)
+            rewound = self._creator_rewind_to_stage(detail, target_stage, clean_comment)
+            try:
+                return self.creator_generate_artifact(run_id, target_stage, clean_comment)
+            except Exception:
+                return rewound
+        updated = self.state.creator_action(run_id, action, clean_comment)
         return self._enrich_creator_run(updated)
+
+    def _creator_previous_stage_key(self, detail: dict[str, Any], active_stage: str) -> str:
+        stages = list((detail.get("payload") or {}).get("stages") or detail.get("stages") or self.state._creator_stage_template())
+        order = [str(item.get("key") or "") for item in stages if str(item.get("key") or "")]
+        if active_stage not in order:
+            return "research"
+        index = order.index(active_stage)
+        if index <= 1:
+            return "research"
+        return order[index - 1]
+
+    def _creator_rewind_to_stage(self, detail: dict[str, Any], target_stage: str, comment: str) -> dict[str, Any]:
+        run_id = str(detail.get("runId") or "")
+        payload = dict(detail.get("payload") or {})
+        stages = list(payload.get("stages") or detail.get("stages") or [])
+        target_index = next((idx for idx, item in enumerate(stages) if str(item.get("key") or "") == target_stage), None)
+        if target_index is None:
+            raise ValueError("Cannot move creator run back because the target stage does not exist.")
+        now = utc_now()
+        for idx, stage in enumerate(stages):
+            if idx < target_index:
+                stage["status"] = "completed"
+            elif idx == target_index:
+                stage["status"] = "active"
+            else:
+                stage["status"] = "blocked"
+            stage["updatedAt"] = now
+        payload["stages"] = stages
+        stage_artifacts = dict(payload.get("stageArtifacts") or {})
+        clear_keys = [str(item.get("key") or "") for item in stages[target_index:]]
+        for key in clear_keys:
+            stage_artifacts.pop(key, None)
+        payload["stageArtifacts"] = stage_artifacts
+        if target_index <= 4:
+            payload.pop("qcStatus", None)
+            payload.pop("qcPlan", None)
+            payload.pop("qcPayload", None)
+        if target_index <= 5:
+            payload.pop("promotion", None)
+            payload.pop("importStatus", None)
+            payload.pop("publishStatus", None)
+            payload.pop("rollbackStatus", None)
+            payload.pop("deleteStatus", None)
+        notes = list(payload.get("notes") or [])
+        if comment:
+            notes.append(
+                {
+                    "type": "human-update",
+                    "stageKey": target_stage,
+                    "comment": comment,
+                    "createdAt": now,
+                }
+            )
+        notes.append(
+            {
+                "type": "system-rework",
+                "stageKey": target_stage,
+                "comment": f"Run moved back to {self._creator_stage_label(target_stage)} for rework.",
+                "createdAt": now,
+            }
+        )
+        payload["notes"] = notes[-50:]
+        payload["draftSummary"] = self._creator_refresh_draft_summary(
+            {**detail, "payload": payload, "stages": stages, "status": "active", "currentStage": target_stage},
+            payload,
+        )
+        with self.state._lock:
+            self.state.conn.execute(
+                "UPDATE creator_runs SET status=?, current_stage=?, payload_json=?, updated_at=? WHERE run_id=?",
+                ("active", target_stage, json.dumps(payload, ensure_ascii=False), now, run_id),
+            )
+            self.state.conn.execute(
+                """
+                INSERT INTO creator_events(run_id, stage_key, action, comment, payload_json, created_at)
+                VALUES(?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    target_stage,
+                    "modify",
+                    comment or f"Moved back to {self._creator_stage_label(target_stage)} for rework.",
+                    json.dumps(payload, ensure_ascii=False),
+                    now,
+                ),
+            )
+            self.state.conn.commit()
+        refreshed = self.state.creator_run_detail(run_id)
+        if refreshed is None:
+            raise ValueError("Creator run not found after moving back for rework.")
+        return self._enrich_creator_run(refreshed)
 
     def creator_save_artifact(self, run_id: str, content: str, stage_key: str | None = None) -> dict[str, Any]:
         updated = self.state.creator_save_artifact(run_id, content, stage_key)
@@ -2695,6 +3312,12 @@ class CourseQualityDaemon:
         if not active_stage:
             raise ValueError("Creator run has no active stage.")
         payload = detail.get("payload") or {}
+        retry_policy = dict(payload.get("retryPolicy") or self._creator_stage_retry_policy())
+        stage_attempts = dict(payload.get("stageAttempts") or {})
+        stage_attempts[active_stage] = int(stage_attempts.get(active_stage) or 0) + 1
+        max_attempts = int(retry_policy.get("maxAttempts") or 5)
+        if stage_attempts[active_stage] > max_attempts:
+            raise ValueError(f"{self._creator_stage_label(active_stage)} reached the global Trinity attempt cap of {max_attempts}.")
         stage_artifacts = payload.get("stageArtifacts") or {}
         stages = list(detail.get("stages") or [])
         self._creator_assert_stage_prerequisites(active_stage, stages)
@@ -2713,24 +3336,75 @@ class CourseQualityDaemon:
             )
         if active_stage == "qc_review":
             self._creator_assert_qc_handoff_ready(detail)
+            current_artifact = self._creator_stage_seed_artifact(detail, active_stage, stage_artifacts)
+            context_artifacts = {
+                key: str((value or {}).get("content") or "")
+                for key, value in (stage_artifacts or {}).items()
+            }
+            judge_result = self.runtime.generate_creator_stage(
+                stage_key=active_stage,
+                topic=str(detail.get("topic") or ""),
+                target_language=str(detail.get("targetLanguage") or ""),
+                research_mode=str(detail.get("researchMode") or ""),
+                current_artifact=current_artifact,
+                context_artifacts=context_artifacts,
+                source_pack=source_pack,
+                revision_request=revision_request,
+            )
+            judge_content = str(judge_result.get("content") or "").strip()
             qc_handoff = self._creator_enqueue_qc_review(detail)
             result = {
-                "provider": "creator-qc-handoff",
-                "content": qc_handoff["content"],
-                "warning": "",
+                "provider": str(judge_result.get("provider") or "creator-qc-handoff"),
+                "role": "judge",
+                "content": judge_content or qc_handoff["content"],
+                "warning": str(judge_result.get("warning") or ""),
             }
-            updated = self.state.creator_save_artifact(run_id, qc_handoff["content"], active_stage)
+            generated_content = result["content"]
+            updated = self.state.creator_save_artifact(run_id, result["content"], active_stage)
             updated_payload = updated.get("payload") or {}
             updated_payload["qcPlan"] = qc_handoff["plan"]
-        elif active_stage == "draft_to_live":
-            draft_summary_content = self._creator_build_draft_to_live_summary(detail)
-            result = {
-                "provider": "creator-draft-summary",
-                "content": draft_summary_content,
-                "warning": "",
+            updated_payload["qcJudge"] = {
+                "provider": result["provider"],
+                "role": "judge",
+                "model": str(judge_result.get("model") or ""),
+                "content": result["content"],
+                "generatedAt": utc_now(),
+                "provenance": self._creator_stage_provenance(detail, active_stage, result, revision_request),
             }
+        elif active_stage == "draft_to_live":
+            current_artifact = self._creator_stage_seed_artifact(detail, active_stage, stage_artifacts)
+            context_artifacts = {
+                key: str((value or {}).get("content") or "")
+                for key, value in (stage_artifacts or {}).items()
+            }
+            judge_result = self.runtime.generate_creator_stage(
+                stage_key=active_stage,
+                topic=str(detail.get("topic") or ""),
+                target_language=str(detail.get("targetLanguage") or ""),
+                research_mode=str(detail.get("researchMode") or ""),
+                current_artifact=current_artifact,
+                context_artifacts=context_artifacts,
+                source_pack=source_pack,
+                revision_request=revision_request,
+            )
+            draft_summary_content = str(judge_result.get("content") or "").strip() or self._creator_build_draft_to_live_summary(detail)
+            result = {
+                "provider": str(judge_result.get("provider") or "creator-draft-summary"),
+                "role": "judge",
+                "content": draft_summary_content,
+                "warning": str(judge_result.get("warning") or ""),
+            }
+            generated_content = result["content"]
             updated = self.state.creator_save_artifact(run_id, draft_summary_content, active_stage)
             updated_payload = updated.get("payload") or {}
+            updated_payload["draftToLiveJudge"] = {
+                "provider": result["provider"],
+                "role": "judge",
+                "model": str(judge_result.get("model") or ""),
+                "content": draft_summary_content,
+                "generatedAt": utc_now(),
+                "provenance": self._creator_stage_provenance(detail, active_stage, result, revision_request),
+            }
         else:
             result = self.runtime.generate_creator_stage(
                 stage_key=active_stage,
@@ -2743,6 +3417,9 @@ class CourseQualityDaemon:
                 revision_request=revision_request,
             )
             generated_content = str(result.get("content") or "")
+            stage_role = "drafter" if active_stage == "research" else "writer"
+            result["role"] = stage_role
+            result["status"] = str(result.get("status") or "").strip() or "HEALTHY"
             valid, validation_detail = self._creator_validate_stage_artifact(active_stage, generated_content)
             if not valid:
                 fallback_content = self._creator_stage_seed_artifact_fresh(detail, active_stage)
@@ -2761,10 +3438,19 @@ class CourseQualityDaemon:
         updated_enriched = self._enrich_creator_run({**updated, "payload": updated_payload})
         updated_payload = updated_enriched.get("payload") or updated_payload
         updated_payload["draftSummary"] = self._creator_refresh_draft_summary(updated_enriched, updated_payload)
+        generated_at = utc_now()
+        stage_artifacts = dict(updated_payload.get("stageArtifacts") or {})
+        stage_artifact = dict(stage_artifacts.get(active_stage) or {})
+        stage_artifact["content"] = generated_content
+        stage_artifact["updatedAt"] = generated_at
+        stage_artifact["provenance"] = self._creator_stage_provenance(detail, active_stage, result, revision_request)
+        stage_artifacts[active_stage] = stage_artifact
+        updated_payload["stageArtifacts"] = stage_artifacts
+        updated_payload["retryPolicy"] = retry_policy
+        updated_payload["stageAttempts"] = stage_attempts
         notes = list(updated_payload.get("notes") or [])
         warning = str(result.get("warning") or "").strip()
         provider = str(result.get("provider") or "-")
-        generated_at = utc_now()
         if revision_request:
             notes.append(
                 {
@@ -2779,7 +3465,7 @@ class CourseQualityDaemon:
                 "type": "stage-generate",
                 "stageKey": active_stage,
                 "comment": (
-                    f"Generated draft via {provider}."
+                    f"Generated draft via {provider} ({str(result.get('role') or 'writer')})."
                     + (" Used human feedback." if revision_request else "")
                     + (f" Warning: {warning}" if warning else "")
                 ),
@@ -2802,7 +3488,7 @@ class CourseQualityDaemon:
                     active_stage,
                     "generate-artifact",
                     (
-                        f"Generated draft via {provider}."
+                        f"Generated draft via {provider} ({str(result.get('role') or 'writer')})."
                         + (" Used human feedback." if revision_request else "")
                         + (f" Warning: {warning}" if warning else "")
                     ),
@@ -2841,10 +3527,8 @@ class CourseQualityDaemon:
             )
 
     def _creator_assert_qc_handoff_ready(self, detail: dict[str, Any]) -> None:
-        missing: list[str] = []
-        for stage_key in ("blueprint", "lesson_generation", "quiz_generation"):
-            if not self._creator_stage_has_material_artifact(detail, stage_key):
-                missing.append(self._creator_stage_label(stage_key))
+        handoff = self._creator_handoff_status(detail)
+        missing = [self._creator_stage_label(item) for item in list(handoff.get("missingStages") or [])]
         if missing:
             label = ", ".join(missing)
             raise ValueError(
@@ -2854,24 +3538,17 @@ class CourseQualityDaemon:
 
     def _creator_stage_has_material_artifact(self, detail: dict[str, Any], stage_key: str) -> bool:
         payload = dict(detail.get("payload") or {})
-        stage_artifacts = dict(payload.get("stageArtifacts") or {})
-        content = str((stage_artifacts.get(stage_key) or {}).get("content") or "").strip()
-        if not content or self._creator_is_placeholder_artifact(stage_key, content):
-            return False
-        if stage_key == "research":
-            return bool(content.strip())
-        if stage_key == "blueprint":
-            return bool(self._creator_parse_blueprint_days(content))
-        if stage_key == "lesson_generation":
-            return bool(self._creator_parse_lesson_batch_rows(content))
-        if stage_key == "quiz_generation":
-            return bool(self._creator_parse_quiz_batch_rows(content))
+        structured = self._creator_structured_artifacts(detail)
+        if stage_key in {"research", "blueprint", "lesson_generation", "quiz_generation"}:
+            return bool((structured.get(stage_key) or {}).get("ready"))
         if stage_key == "qc_review":
             qc_status = dict(payload.get("qcStatus") or {})
             return int(qc_status.get("total") or 0) > 0
         if stage_key == "draft_to_live":
             promotion = dict(payload.get("promotion") or {})
             return bool(str(promotion.get("packagePath") or "").strip())
+        stage_artifacts = dict(payload.get("stageArtifacts") or {})
+        content = str((stage_artifacts.get(stage_key) or {}).get("content") or "").strip()
         return bool(content)
 
     def _creator_first_missing_stage(self, detail: dict[str, Any]) -> str:
@@ -3354,6 +4031,25 @@ class CourseQualityDaemon:
             return self._creator_build_quiz_batch_seed(topic, target_language, lesson_artifact)
         return ""
 
+    def _creator_stage_provenance(
+        self,
+        detail: dict[str, Any],
+        stage_key: str,
+        result: dict[str, Any],
+        revision_request: str,
+    ) -> dict[str, Any]:
+        return {
+            "stageKey": stage_key,
+            "role": str(result.get("role") or ""),
+            "provider": str(result.get("provider") or ""),
+            "model": str(result.get("model") or ""),
+            "status": str(result.get("status") or ""),
+            "revisionRequest": revision_request.strip(),
+            "topic": str(detail.get("topic") or ""),
+            "targetLanguage": str(detail.get("targetLanguage") or ""),
+            "generatedAt": utc_now(),
+        }
+
     def _creator_validate_stage_artifact(self, stage_key: str, content: str) -> tuple[bool, str]:
         normalized = str(content or "").strip()
         if not normalized:
@@ -3373,6 +4069,81 @@ class CourseQualityDaemon:
             if len(rows) < 30:
                 return False, f"Quiz generation must contain structured quiz rows in the required format, but only {len(rows)} were parsed."
         return True, ""
+
+    def _creator_structured_artifacts(self, detail: dict[str, Any]) -> dict[str, Any]:
+        payload = dict(detail.get("payload") or {})
+        stage_artifacts = dict(payload.get("stageArtifacts") or {})
+        structured: dict[str, Any] = {}
+        for stage_key, artifact in stage_artifacts.items():
+            content = str((artifact or {}).get("content") or "").strip()
+            if not content:
+                structured[stage_key] = {"ready": False, "count": 0, "items": [], "reason": "empty"}
+                continue
+            if self._creator_is_placeholder_artifact(stage_key, content):
+                structured[stage_key] = {"ready": False, "count": 0, "items": [], "reason": "placeholder"}
+                continue
+            if stage_key == "research":
+                sections = self._creator_parse_research_sections(content)
+                items = [{"heading": heading, "rows": rows} for heading, rows in sections.items()]
+                structured[stage_key] = {
+                    "ready": bool(items),
+                    "count": len(items),
+                    "items": items,
+                    "reason": "" if items else "unstructured",
+                }
+            elif stage_key == "blueprint":
+                items = self._creator_parse_blueprint_days(content)
+                structured[stage_key] = {
+                    "ready": len(items) >= 30,
+                    "count": len(items),
+                    "items": items,
+                    "reason": "" if len(items) >= 30 else "missing-days",
+                }
+            elif stage_key == "lesson_generation":
+                items = self._creator_parse_lesson_batch_rows(content)
+                structured[stage_key] = {
+                    "ready": len(items) >= 30,
+                    "count": len(items),
+                    "items": items,
+                    "reason": "" if len(items) >= 30 else "missing-lessons",
+                }
+            elif stage_key == "quiz_generation":
+                items = self._creator_parse_quiz_batch_rows(content)
+                day_count = len({str(item.get("day") or "") for item in items if str(item.get("day") or "")})
+                structured[stage_key] = {
+                    "ready": len(items) >= 30 and day_count >= 30,
+                    "count": len(items),
+                    "items": items,
+                    "dayCount": day_count,
+                    "reason": "" if len(items) >= 30 and day_count >= 30 else "missing-quizzes",
+                }
+            else:
+                structured[stage_key] = {"ready": True, "count": 1, "items": [], "reason": ""}
+        return structured
+
+    def _creator_handoff_status(self, detail: dict[str, Any]) -> dict[str, Any]:
+        payload = dict(detail.get("payload") or {})
+        structured = self._creator_structured_artifacts(detail)
+        blueprint = dict(structured.get("blueprint") or {})
+        lessons = dict(structured.get("lesson_generation") or {})
+        quizzes = dict(structured.get("quiz_generation") or {})
+        missing: list[str] = []
+        if not bool(blueprint.get("ready")):
+            missing.append("blueprint")
+        if not bool(lessons.get("ready")):
+            missing.append("lesson_generation")
+        if not bool(quizzes.get("ready")):
+            missing.append("quiz_generation")
+        qc_status = dict(payload.get("qcStatus") or {})
+        return {
+            "readyForQc": not missing,
+            "missingStages": missing,
+            "blueprintDays": int(blueprint.get("count") or 0),
+            "lessonDrafts": int(lessons.get("count") or 0),
+            "quizDrafts": int(quizzes.get("count") or 0),
+            "qcTasks": int(qc_status.get("total") or 0),
+            "status": "ready" if not missing else f"missing:{','.join(missing)}",
+        }
 
     def _creator_is_placeholder_artifact(self, stage_key: str, content: str) -> bool:
         normalized = str(content or "").strip()
@@ -3451,6 +4222,16 @@ class CourseQualityDaemon:
         if publish_status:
             summary["amanobaLiveStatus"] = str(publish_status.get("status") or "published-live")
             summary["amanobaLiveCourseId"] = str(publish_status.get("courseId") or "")
+        handoff_status = dict(payload.get("handoffStatus") or {})
+        if handoff_status:
+            if bool(handoff_status.get("readyForQc")):
+                summary["handoffReadiness"] = (
+                    f"QC handoff ready · {int(handoff_status.get('lessonDrafts') or 0)} lesson drafts"
+                    f" · {int(handoff_status.get('quizDrafts') or 0)} quiz drafts"
+                )
+            else:
+                missing = ", ".join(self._creator_stage_label(item) for item in list(handoff_status.get("missingStages") or []))
+                summary["handoffReadiness"] = f"QC handoff blocked · missing {missing or 'required stages'}"
         rollback_status = dict(payload.get("rollbackStatus") or {})
         if rollback_status:
             summary["amanobaRollbackStatus"] = str(rollback_status.get("status") or "rolled-back-to-draft")
@@ -3461,6 +4242,7 @@ class CourseQualityDaemon:
 
     def _enrich_creator_run(self, detail: dict[str, Any]) -> dict[str, Any]:
         payload = dict(detail.get("payload") or {})
+        payload["structuredArtifacts"] = self._creator_structured_artifacts({**detail, "payload": payload})
         qc_plan = dict(payload.get("qcPlan") or {})
         if qc_plan:
             qc_status = self._creator_qc_status(qc_plan)
@@ -3471,6 +4253,7 @@ class CourseQualityDaemon:
             qc_artifact["updatedAt"] = qc_status.get("generatedAt")
             stage_artifacts["qc_review"] = qc_artifact
             payload["stageArtifacts"] = stage_artifacts
+        payload["handoffStatus"] = self._creator_handoff_status({**detail, "payload": payload})
         enriched = dict(detail)
         enriched["payload"] = payload
         enriched["artifactSummaries"] = self._creator_artifact_summaries(dict(payload.get("stageArtifacts") or {}))
@@ -3569,9 +4352,9 @@ class CourseQualityDaemon:
 
     def _creator_enqueue_qc_review(self, detail: dict[str, Any]) -> dict[str, Any]:
         payload = dict(detail.get("payload") or {})
-        stage_artifacts = dict(payload.get("stageArtifacts") or {})
-        lesson_rows = self._creator_parse_lesson_batch_rows(str((stage_artifacts.get("lesson_generation") or {}).get("content") or ""))
-        quiz_rows = self._creator_parse_quiz_batch_rows(str((stage_artifacts.get("quiz_generation") or {}).get("content") or ""))
+        structured = self._creator_structured_artifacts(detail)
+        lesson_rows = list((structured.get("lesson_generation") or {}).get("items") or [])
+        quiz_rows = list((structured.get("quiz_generation") or {}).get("items") or [])
         if not lesson_rows:
             raise ValueError("Approved lesson generation artifact does not contain lesson drafts to inject into QC.")
         run_id = str(detail.get("runId") or "")
@@ -4897,6 +5680,7 @@ class CourseQualityDaemon:
         return created
 
     def _process_task(self, task: sqlite3.Row) -> dict[str, Any]:
+        task_key = str(task["task_key"])
         if str(task["kind"]) == "creator_lesson":
             return self._process_creator_lesson_task(task)
         if str(task["kind"]) == "creator_question":
@@ -4914,8 +5698,8 @@ class CourseQualityDaemon:
             raise RuntimeError(f"Lesson not found: {task['lesson_id']}")
         human_feedback = self.state.feedback_comments(task["task_key"])
         if task["kind"] == "lesson":
-            return self._process_lesson_task(package_path, package, course, lesson, human_feedback)
-        return self._process_question_task(package_path, package, course, lesson, int(task["question_index"]), human_feedback)
+            return self._process_lesson_task(package_path, package, course, lesson, human_feedback, task_key=task_key)
+        return self._process_question_task(package_path, package, course, lesson, int(task["question_index"]), human_feedback, task_key=task_key)
 
     def _lesson_ready_for_question_queue(self, *, package_path: str, course_id: str, lesson_id: str) -> bool:
         lesson_task = self.state.related_lesson_task(package_path, course_id, lesson_id)
@@ -4936,18 +5720,39 @@ class CourseQualityDaemon:
             return False
         return str(lesson_task["status"] or "") != "completed"
 
+    def _claim_next_eligible_task(self, max_attempts: int) -> sqlite3.Row | None:
+        deferred = 0
+        while True:
+            task = self.state.claim_next_task(max_attempts)
+            if task is None:
+                return None
+            if not self._question_task_waits_on_lesson(task):
+                return task
+            deferred += 1
+            self.state.defer_task(
+                str(task["task_key"]),
+                details={
+                    "waitingOnLessonQc": True,
+                    "waitingOnLessonId": str(task["lesson_id"] or ""),
+                },
+            )
+            self._clear_heartbeat_task("idle", f"Deferred {task['task_key']} until lesson QC passes.")
+            if deferred >= 25:
+                return None
+
     def _process_live_task(self, task: sqlite3.Row) -> dict[str, Any]:
         if self.live_bridge is None:
             raise RuntimeError("Live DB mode is enabled but the live bridge is not configured.")
+        task_key = str(task["task_key"])
         live_task = self.live_bridge.fetch(str(task["task_key"]))
         human_feedback = self.state.feedback_comments(task["task_key"])
         course = live_task.get("course") or {}
         lesson = live_task.get("lesson") or {}
         context = dict(live_task.get("context") or {})
         if task["kind"] == "lesson":
-            return self._process_live_lesson_task(str(task["task_key"]), course, lesson, human_feedback, context)
+            return self._process_live_lesson_task(task_key, course, lesson, human_feedback, context)
         question = live_task.get("question") or {}
-        return self._process_live_question_task(str(task["task_key"]), course, lesson, question, human_feedback, context)
+        return self._process_live_question_task(task_key, course, lesson, question, human_feedback, context)
 
     def _creator_task_details(self, task: sqlite3.Row) -> dict[str, Any]:
         raw = task["details_json"]
@@ -4998,7 +5803,25 @@ class CourseQualityDaemon:
             )
             self.state.conn.commit()
 
+    def _specialist_task_details(self, attempt: dict[str, Any]) -> dict[str, Any]:
+        specialist = dict(attempt.get("specialist") or {})
+        if not specialist:
+            return {}
+        return {
+            "specialistPipeline": {
+                "active": True,
+                "provider": str(specialist.get("provider") or "specialist-pipeline"),
+                "accepted": bool(specialist.get("accepted")),
+                "trustScore": specialist.get("trustScore"),
+                "impactScore": specialist.get("impactScore"),
+                "judgeReason": str(specialist.get("judgeReason") or ""),
+                "revisionNote": str(specialist.get("revisionNote") or ""),
+                "roles": specialist.get("roles") or {},
+            }
+        }
+
     def _process_creator_lesson_task(self, task: sqlite3.Row) -> dict[str, Any]:
+        task_key = str(task["task_key"])
         details = self._creator_task_details(task)
         before = _normalize_lesson_payload(dict(details.get("before") or {}))
         target_language = str(task["language"] or details.get("language") or "")
@@ -5045,7 +5868,11 @@ class CourseQualityDaemon:
                 "humanLessonTitle": str(before.get("title") or task["lesson_id"] or ""),
                 "creatorRunId": str(details.get("runId") or ""),
             }
-        attempt = self._repair_lesson_candidate(course, lesson, target_language, audit, human_feedback, context)
+        pulse = self._start_task_progress_pulse(task_key, "Creator lesson rewrite still in progress.")
+        try:
+            attempt = self._repair_lesson_candidate(course, lesson, target_language, audit, human_feedback, context)
+        finally:
+            self._stop_task_progress_pulse(pulse)
         raw_after = _normalize_lesson_payload(attempt["after"])
         after, merged_fields = _merge_lesson_payload(before, raw_after)
         post_audit = audit_lesson(after, target_language)
@@ -5068,6 +5895,7 @@ class CourseQualityDaemon:
                     "mergedFallbackFields": merged_fields,
                     "missingGeneratedFields": _missing_lesson_fields(raw_after),
                     "providerTimings": attempt.get("providerTimings") or [],
+                    **self._specialist_task_details(attempt),
                     "displayTitle": str(after.get("title") or before.get("title") or task["lesson_id"] or ""),
                     "humanCourseName": course["name"],
                     "humanDayLabel": day_label,
@@ -5106,10 +5934,12 @@ class CourseQualityDaemon:
             "mergedFallbackFields": merged_fields,
             "missingGeneratedFields": _missing_lesson_fields(raw_after),
             "providerTimings": attempt.get("providerTimings") or [],
+            **self._specialist_task_details(attempt),
             "creatorRunId": str(details.get("runId") or ""),
         }
 
     def _process_creator_question_task(self, task: sqlite3.Row) -> dict[str, Any]:
+        task_key = str(task["task_key"])
         details = self._creator_task_details(task)
         before = json.loads(json.dumps(details.get("before") or {}, ensure_ascii=False))
         target_language = str(task["language"] or before.get("language") or "")
@@ -5151,11 +5981,30 @@ class CourseQualityDaemon:
                 "humanLessonTitle": lesson["title"],
                 "creatorRunId": str(details.get("runId") or ""),
             }
-        attempt = self._repair_question_candidate(course, lesson, before, target_language, validation, human_feedback, {})
+        self._task_checkpoint(task_key, "Drafting creator question rewrite.")
+        pulse = self._start_task_progress_pulse(task_key, "Creator question rewrite still in progress.")
+        try:
+            attempt = self._repair_question_candidate(course, lesson, before, target_language, validation, human_feedback, {})
+        finally:
+            self._stop_task_progress_pulse(pulse)
+        self._task_checkpoint(task_key, "Creator question draft generated.")
         after = json.loads(json.dumps(attempt["after"], ensure_ascii=False))
         post_validation = attempt["validation"]
         changed_fields = [key for key in after if before.get(key) != after.get(key)]
+        draft_changed = json.dumps(before, ensure_ascii=False, sort_keys=True) != json.dumps(after, ensure_ascii=False, sort_keys=True)
         resolved_errors = [item for item in validation.errors if item not in post_validation.errors]
+        if draft_changed:
+            self._creator_store_qc_result(
+                str(details.get("runId") or ""),
+                str(task["task_key"]),
+                "question",
+                after,
+                {
+                    "questionUuid": str(task["question_uuid"] or ""),
+                    "status": "partial-applied" if not post_validation.is_valid else "completed",
+                    "displayTitle": str(after.get("question") or before.get("question") or task["question_uuid"] or ""),
+                },
+            )
         if not post_validation.is_valid:
             raise TaskProcessingError(
                 f"Rewritten creator question still failed validation: {post_validation.errors}",
@@ -5168,9 +6017,11 @@ class CourseQualityDaemon:
                     "after": after,
                     "feedbackUsed": human_feedback,
                     "changedFields": changed_fields,
+                    "draftChanged": draft_changed,
                     "resolvedErrors": resolved_errors,
                     "remainingErrors": post_validation.errors,
                     "providerTimings": attempt.get("providerTimings") or [],
+                    **self._specialist_task_details(attempt),
                     "displayTitle": str(after.get("question") or before.get("question") or task["question_uuid"] or ""),
                     "humanCourseName": course["name"],
                     "humanDayLabel": str(details.get("humanDayLabel") or task["lesson_id"] or "-"),
@@ -5204,9 +6055,11 @@ class CourseQualityDaemon:
             "humanLessonTitle": lesson["title"],
             "feedbackUsed": human_feedback,
             "changedFields": changed_fields,
+            "draftChanged": draft_changed,
             "resolvedErrors": resolved_errors,
             "remainingErrors": [],
             "providerTimings": attempt.get("providerTimings") or [],
+            **self._specialist_task_details(attempt),
             "creatorRunId": str(details.get("runId") or ""),
         }
 
@@ -5547,6 +6400,39 @@ class CourseQualityDaemon:
         candidate: dict[str, str]
         post_audit: ValidationResult
 
+        specialist_errors = list(audit.errors)
+        specialist_errors.extend(self._lesson_context_notes(course, context))
+        specialist_errors.extend(f"Human challenge: {comment}" for comment in human_feedback)
+        if self.runtime.specialist_qc_available():
+            try:
+                specialist = self.runtime.specialist_rewrite_lesson(
+                    course,
+                    lesson,
+                    specialist_errors,
+                    human_feedback,
+                )
+                provider_timings.extend(list(specialist.get("timings") or []))
+                specialist_candidate = _normalize_lesson_payload(specialist["payload"])
+                specialist_audit = audit_lesson(specialist_candidate, target_language)
+                if bool(specialist.get("accepted")) and specialist_audit.is_valid:
+                    return {
+                        "provider": str(specialist.get("provider") or "specialist-pipeline"),
+                        "mode": "specialist-pipeline",
+                        "after": specialist_candidate,
+                        "validation": specialist_audit,
+                        "providerTimings": provider_timings,
+                        "specialist": specialist,
+                    }
+            except Exception as exc:
+                provider_timings.append(
+                    {
+                        "provider": "specialist-pipeline",
+                        "status": "failed",
+                        "detail": str(exc),
+                        "durationMs": 0,
+                    }
+                )
+
         if self._should_reconstruct_lesson(audit, lesson):
             if self._should_template_reconstruct_lesson(audit, lesson):
                 provider_name = "sanitization-fallback"
@@ -5648,6 +6534,40 @@ class CourseQualityDaemon:
         candidate = self._template_reconstruct_question(course, lesson, question, target_language)
         post_validation = validate_question(candidate, target_language)
 
+        specialist_errors = list(validation.errors)
+        specialist_errors.extend(self._question_context_notes(course, lesson, context))
+        specialist_errors.extend(f"Human challenge: {comment}" for comment in human_feedback)
+        if self.runtime.specialist_qc_available():
+            try:
+                specialist = self.runtime.specialist_rewrite_question(
+                    course,
+                    lesson,
+                    question,
+                    specialist_errors,
+                    human_feedback,
+                )
+                provider_timings.extend(list(specialist.get("timings") or []))
+                specialist_candidate = json.loads(json.dumps(specialist["payload"], ensure_ascii=False))
+                specialist_validation = validate_question(specialist_candidate, target_language)
+                if bool(specialist.get("accepted")) and specialist_validation.is_valid:
+                    return {
+                        "provider": str(specialist.get("provider") or "specialist-pipeline"),
+                        "mode": "specialist-pipeline",
+                        "after": specialist_candidate,
+                        "validation": specialist_validation,
+                        "providerTimings": provider_timings,
+                        "specialist": specialist,
+                    }
+            except Exception as exc:
+                provider_timings.append(
+                    {
+                        "provider": "specialist-pipeline",
+                        "status": "failed",
+                        "detail": str(exc),
+                        "durationMs": 0,
+                    }
+                )
+
         try:
             rewrite_order = self.runtime.writer_provider_order if self._writer_first_required(validation.errors) else None
             rewrite = self.runtime.rewrite_question_with_failover(course, lesson, question, rewrite_input, preferred_order=rewrite_order)
@@ -5746,14 +6666,21 @@ class CourseQualityDaemon:
             }
         if not self.config.fix_lessons or not self.config.apply_fixes:
             raise RuntimeError(f"Lesson needs improvement but lesson fixing is disabled: {audit.errors}")
-        attempt = self._repair_lesson_candidate(course, lesson, target_language, audit, human_feedback, context)
+        self._task_checkpoint(task_key, "Drafting creator lesson rewrite.")
+        pulse = self._start_task_progress_pulse(task_key, "Creator lesson rewrite still in progress.")
+        try:
+            attempt = self._repair_lesson_candidate(course, lesson, target_language, audit, human_feedback, context)
+        finally:
+            self._stop_task_progress_pulse(pulse)
+        self._task_checkpoint(task_key, "Creator lesson draft generated.")
         raw_after = _normalize_lesson_payload(attempt["after"])
         after, merged_fields = _merge_lesson_payload(before, raw_after)
         post_audit = audit_lesson(after, target_language)
         changed_fields = [key for key in before if before.get(key) != after.get(key)]
+        draft_changed = json.dumps(before, ensure_ascii=False, sort_keys=True) != json.dumps(after, ensure_ascii=False, sort_keys=True)
         resolved_errors = [item for item in audit.errors if item not in post_audit.errors]
         backup = None
-        if changed_fields:
+        if draft_changed:
             backup = self._backup_live_snapshot(task_key, before)
             try:
                 self.live_bridge.apply(task_key, after)
@@ -5770,12 +6697,14 @@ class CourseQualityDaemon:
                         "after": after,
                         "feedbackUsed": human_feedback,
                         "changedFields": changed_fields,
+                        "draftChanged": draft_changed,
                         "resolvedErrors": resolved_errors,
                         "remainingErrors": post_audit.errors,
                         "partialApplied": False,
                         "mergedFallbackFields": merged_fields,
                         "missingGeneratedFields": _missing_lesson_fields(raw_after),
                         "providerTimings": attempt.get("providerTimings") or [],
+                        **self._specialist_task_details(attempt),
                     },
                 ) from exc
         if not post_audit.is_valid:
@@ -5791,12 +6720,14 @@ class CourseQualityDaemon:
                     "after": after,
                     "feedbackUsed": human_feedback,
                     "changedFields": changed_fields,
+                    "draftChanged": draft_changed,
                     "resolvedErrors": resolved_errors,
                     "remainingErrors": post_audit.errors,
-                    "partialApplied": bool(changed_fields),
+                    "partialApplied": bool(draft_changed),
                     "mergedFallbackFields": merged_fields,
                     "missingGeneratedFields": _missing_lesson_fields(raw_after),
                     "providerTimings": attempt.get("providerTimings") or [],
+                    **self._specialist_task_details(attempt),
                 },
             )
         judgement = confidence_for_completion(str(attempt["provider"]), post_audit.warnings)
@@ -5815,11 +6746,13 @@ class CourseQualityDaemon:
             "humanLessonTitle": human_lesson,
             "feedbackUsed": human_feedback,
             "changedFields": changed_fields,
+            "draftChanged": draft_changed,
             "resolvedErrors": resolved_errors,
             "remainingErrors": [],
             "mergedFallbackFields": merged_fields,
             "missingGeneratedFields": _missing_lesson_fields(raw_after),
             "providerTimings": attempt.get("providerTimings") or [],
+            **self._specialist_task_details(attempt),
         }
 
     def _process_live_question_task(
@@ -5854,7 +6787,11 @@ class CourseQualityDaemon:
             }
         if not self.config.fix_questions or not self.config.apply_fixes:
             raise RuntimeError(f"Question needs improvement but question fixing is disabled: {validation.errors}")
-        attempt = self._repair_question_candidate(course, lesson, question, target_language, validation, human_feedback, context)
+        pulse = self._start_task_progress_pulse(task_key, "Live question rewrite still in progress.")
+        try:
+            attempt = self._repair_question_candidate(course, lesson, question, target_language, validation, human_feedback, context)
+        finally:
+            self._stop_task_progress_pulse(pulse)
         after = json.loads(json.dumps(attempt["after"], ensure_ascii=False))
         post_validation = attempt["validation"]
         changed_fields = [key for key in after if before.get(key) != after.get(key)]
@@ -5880,6 +6817,7 @@ class CourseQualityDaemon:
                     "remainingErrors": post_validation.errors,
                     "partialApplied": bool(changed_fields),
                     "providerTimings": attempt.get("providerTimings") or [],
+                    **self._specialist_task_details(attempt),
                 },
             )
         judgement = confidence_for_completion(str(attempt["provider"]), post_validation.warnings)
@@ -5901,6 +6839,7 @@ class CourseQualityDaemon:
             "resolvedErrors": resolved_errors,
             "remainingErrors": [],
             "providerTimings": attempt.get("providerTimings") or [],
+            **self._specialist_task_details(attempt),
         }
 
     def _process_lesson_task(
@@ -5910,6 +6849,7 @@ class CourseQualityDaemon:
         course: dict[str, Any],
         lesson: dict[str, Any],
         human_feedback: list[str],
+        task_key: str | None = None,
     ) -> dict[str, Any]:
         target_language = str(course.get("language") or lesson.get("language") or "")
         audit = audit_lesson(lesson, target_language)
@@ -5918,6 +6858,7 @@ class CourseQualityDaemon:
             return {"status": "already-valid", "warnings": audit.warnings, "judgement": judgement}
         if not self.config.fix_lessons or not self.config.apply_fixes:
             raise RuntimeError(f"Lesson needs improvement but lesson fixing is disabled: {audit.errors}")
+        self._task_checkpoint(task_key, "Drafting lesson rewrite.")
         before = {
             "title": lesson.get("title"),
             "content": lesson.get("content"),
@@ -5925,7 +6866,12 @@ class CourseQualityDaemon:
             "emailBody": lesson.get("emailBody"),
         }
         context = self._package_lesson_context(package, str(lesson.get("lessonId") or ""), include_questions=True)
-        attempt = self._repair_lesson_candidate(course, lesson, target_language, audit, human_feedback, context)
+        pulse = self._start_task_progress_pulse(task_key, "Package lesson rewrite still in progress.")
+        try:
+            attempt = self._repair_lesson_candidate(course, lesson, target_language, audit, human_feedback, context)
+        finally:
+            self._stop_task_progress_pulse(pulse)
+        self._task_checkpoint(task_key, "Lesson draft generated.")
         raw_after = _normalize_lesson_payload(attempt["after"])
         after, merged_fields = _merge_lesson_payload(before, raw_after)
         post_audit = audit_lesson(after, target_language)
@@ -5959,6 +6905,7 @@ class CourseQualityDaemon:
                         "mergedFallbackFields": merged_fields,
                         "missingGeneratedFields": _missing_lesson_fields(raw_after),
                         "providerTimings": attempt.get("providerTimings") or [],
+                        **self._specialist_task_details(attempt),
                     },
                 ) from exc
         if not post_audit.is_valid:
@@ -5980,6 +6927,7 @@ class CourseQualityDaemon:
                     "mergedFallbackFields": merged_fields,
                     "missingGeneratedFields": _missing_lesson_fields(raw_after),
                     "providerTimings": attempt.get("providerTimings") or [],
+                    **self._specialist_task_details(attempt),
                 },
             )
         judgement = confidence_for_completion(str(attempt["provider"]), post_audit.warnings)
@@ -5999,6 +6947,7 @@ class CourseQualityDaemon:
             "mergedFallbackFields": merged_fields,
             "missingGeneratedFields": _missing_lesson_fields(raw_after),
             "providerTimings": attempt.get("providerTimings") or [],
+            **self._specialist_task_details(attempt),
         }
 
     def _process_question_task(
@@ -6009,6 +6958,7 @@ class CourseQualityDaemon:
         lesson: dict[str, Any],
         question_index: int,
         human_feedback: list[str],
+        task_key: str | None = None,
     ) -> dict[str, Any]:
         questions = lesson.get("quizQuestions") or []
         if question_index >= len(questions):
@@ -6021,19 +6971,26 @@ class CourseQualityDaemon:
             return {"status": "already-valid", "warnings": validation.warnings, "judgement": judgement}
         if not self.config.fix_questions or not self.config.apply_fixes:
             raise RuntimeError(f"Question needs improvement but question fixing is disabled: {validation.errors}")
+        self._task_checkpoint(task_key, "Drafting question rewrite.")
         before = json.loads(json.dumps(question, ensure_ascii=False))
         context = self._package_lesson_context(package, str(lesson.get("lessonId") or ""), include_questions=True)
         siblings = list(context.get("siblingQuestions") or [])
         if 0 <= question_index < len(siblings):
             siblings.pop(question_index)
         context["siblingQuestions"] = siblings
-        attempt = self._repair_question_candidate(course, lesson, question, target_language, validation, human_feedback, context)
+        pulse = self._start_task_progress_pulse(task_key, "Package question rewrite still in progress.")
+        try:
+            attempt = self._repair_question_candidate(course, lesson, question, target_language, validation, human_feedback, context)
+        finally:
+            self._stop_task_progress_pulse(pulse)
+        self._task_checkpoint(task_key, "Question draft generated.")
         after = json.loads(json.dumps(attempt["after"], ensure_ascii=False))
         post_validation = attempt["validation"]
         changed_fields = [key for key in after if before.get(key) != after.get(key)]
+        draft_changed = json.dumps(before, ensure_ascii=False, sort_keys=True) != json.dumps(after, ensure_ascii=False, sort_keys=True)
         resolved_errors = [item for item in validation.errors if item not in post_validation.errors]
         backup = None
-        if changed_fields:
+        if draft_changed:
             backup = self._backup_file(package_path)
             for key in ["question", "options", "correctIndex", "questionType", "difficulty", "category", "hashtags"]:
                 if key in after:
@@ -6052,10 +7009,12 @@ class CourseQualityDaemon:
                     "after": after,
                     "feedbackUsed": human_feedback,
                     "changedFields": changed_fields,
+                    "draftChanged": draft_changed,
                     "resolvedErrors": resolved_errors,
                     "remainingErrors": post_validation.errors,
-                    "partialApplied": bool(changed_fields),
+                    "partialApplied": bool(draft_changed),
                     "providerTimings": attempt.get("providerTimings") or [],
+                    **self._specialist_task_details(attempt),
                 },
             )
         judgement = confidence_for_completion(str(attempt["provider"]), post_validation.warnings)
@@ -6070,9 +7029,11 @@ class CourseQualityDaemon:
             "after": after,
             "feedbackUsed": human_feedback,
             "changedFields": changed_fields,
+            "draftChanged": draft_changed,
             "resolvedErrors": resolved_errors,
             "remainingErrors": [],
             "providerTimings": attempt.get("providerTimings") or [],
+            **self._specialist_task_details(attempt),
         }
 
     def _save_package(self, path: Path, package: dict[str, Any]) -> None:

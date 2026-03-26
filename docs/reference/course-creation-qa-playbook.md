@@ -4,10 +4,31 @@ This document is a **general quality assurance checklist** to use every time a n
 
 It intentionally references the existing SSOT documents and the production-grade scripts already in this repo.
 
+Applies to: **Amanoba v0.2.0**.
+
+## Status and SSOT
+
+- **Status:** current course-creation QA reference
+- **Document owner:** Amanoba course-creation maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if a checklist item conflicts with live runtime behavior, update this playbook and the related SSOT before treating the checklist as authoritative
+
+## Ownership and SSOT
+
+- **Content SSOT:** `docs/reference/sovereign-course-creator-compatibility-contract.md`
+- **Process SSOT:** `docs/reference/quiz-quality-pipeline-handover.md` and `docs/reference/quiz-quality-pipeline-playbook.md`
+- **Runtime version:** `Amanoba v0.2.0`
+
 Current execution surface:
 
 - sovereign course creation is being delivered in the local `amanoba_courses` browserview control center
 - the local UI currently implements staged artifacts for `Research`, `Blueprint`, `Lesson Generation`, `Quiz Generation`, `QC Review`, and `Draft To Live`
+- the creator interaction model is decision-point driven:
+  - show only the current stage content
+  - let the user `Accept`, `Modify`, or `Delete`
+  - `Accept` moves forward and starts the next AI step automatically
+  - `Modify` moves back one stage and starts rework automatically using the user note
+  - `Delete` moves the run to trash
 - `QC Review` now injects creator-owned lesson/question drafts into the local QC queue at top priority
 - `Draft To Live` now:
   - exports a v2 draft course package from the creator payload

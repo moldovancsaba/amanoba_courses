@@ -7,7 +7,7 @@ APP_DIR="$HOME/Applications/${APP_NAME}.app"
 BIN_DIR="$APP_DIR/Contents/MacOS"
 RES_DIR="$APP_DIR/Contents/Resources"
 TMP_SWIFT="/tmp/${APP_NAME}.swift"
-APP_VERSION="0.1.0"
+APP_VERSION="0.2.0"
 
 mkdir -p "$BIN_DIR" "$RES_DIR"
 

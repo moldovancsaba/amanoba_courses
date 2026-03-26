@@ -8,6 +8,20 @@ It is the implementation artifact for:
 
 If a later course-creation stage contradicts this contract, this contract wins until it is explicitly updated.
 
+Applies to: **Amanoba v0.2.0**.
+
+## Status and SSOT
+
+- **Status:** current compatibility contract
+- **Document owner:** Amanoba course-creator maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** when the code and this document disagree, update this contract to match the live application before relying on it for delivery
+
+## Ownership and SSOT
+
+- **Compatibility SSOT:** this contract plus the live Amanoba application behavior in `/Users/moldovancsaba/Projects/amanoba`
+- **Runtime version:** `Amanoba v0.2.0`
+
 ## Purpose
 
 The sovereign course creator must produce artifacts that are:
@@ -247,10 +261,12 @@ Allowed side effects:
 - queue injection
 - QC status tracking
 - QC feedback linked back to the sovereign run
+- structured handoff payloads derived from approved blueprint/lesson/question stage artifacts
 
 Forbidden:
 
 - direct live promotion without QC completion
+- QC injection that depends only on reparsing human-readable markdown without a validated structured handoff payload
 
 ### Stage 8: Draft-to-live promotion
 

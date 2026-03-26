@@ -2,6 +2,13 @@
 
 Copy/paste this prompt whenever you want the agent to run the full **recursive** “Audit → QC → Refine Lesson → Rewrite Quiz” process for **all `PRODUCTIVITY_2026_*` course variants**.
 
+## Status and SSOT
+
+- **Status:** current recursive QC prompt
+- **Document owner:** Amanoba course/QC maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if this prompt conflicts with the current SSOT or the live pipeline behavior, update the prompt before using it for delivery work
+
 ---
 
 You are the AI developer/content architect for AMANOBA.

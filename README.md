@@ -2,6 +2,18 @@
 
 Local-first control center for the live Amanoba system. It reads the live MongoDB-backed Amanoba app through a bridge, queues weak lessons and quiz questions, fixes one item at a time, and keeps running in the background with a local web control center.
 
+Current operating shape:
+
+- resident MLX creator roles:
+  - drafter on `8080`
+  - writer on `8081`
+  - judge on `8082`
+- Ollama fallback kept warm with `keep_alive`
+- launch agents wrapped with `caffeinate -dimsu`
+- menubar app trimmed to the real operator actions only
+- current QC queue is English-only
+- the dashboard shows one compact `Model Roster` row with the three resident roles plus `mlx` and `ollama`
+
 ## Launch Like `{hatori}` or `{reply}`
 
 Primary one-click launcher:
@@ -49,6 +61,10 @@ Menu app guide:
 
 - [`docs/menubar-user-guide.md`](docs/menubar-user-guide.md)
 
+User manual:
+
+- [`docs/user-manual.md`](docs/user-manual.md)
+
 ## Quick Start
 
 ```bash
@@ -90,6 +106,7 @@ The queue is guarded by a shared process lock, so only one QC worker process can
 
 The watchdog is a separate supervisor, not the worker itself. It runs from launchd at login and on a repeating schedule, repairs stale locks and stuck tasks, kills frozen worker runs, enforces MLX/Apertus as the primary writer provider, and kickstarts the worker/dashboard/Ollama when health checks fail.
 Timeouts now create a task-level RCA record, trigger an immediate watchdog incident cycle, and quarantine a card after repeated bounce-backs so it stays visible for human review instead of looping forever.
+The watchdog also rewarms resident creator roles when memory pressure rises, instead of leaving the runtime in a degraded but silent state.
 
 The Failed review surface is broader than terminal failure. It includes active failed/problem cases, and quarantined cards remain explicitly visible for human review instead of silently re-entering the queue.
 
@@ -113,6 +130,11 @@ The worker now supports provider selection in this order by default:
 That means:
 
 - MLX/Apertus is the primary writer for unattended QC,
+- lesson/question QC now first tries a local specialist micro-pipeline:
+  - `drafter` = Gemma 3 270M
+  - `writer` = Granite 4.0 H 350M
+  - `judge` = Qwen 2.5 0.5B
+- if the specialist path rejects or fails, QC falls back to the existing rewrite/failover path
 - Ollama is fallback only when MLX is unavailable or temporarily cooled down after repeated runtime failures,
 - the watchdog treats `selected provider != mlx` as a repairable incident and tries to restore MLX automatically,
 - the MLX path runs through the dedicated [`.venv-mlx/bin/python`](/Users/moldovancsaba/Projects/amanoba_courses/.venv-mlx/bin/python) interpreter so health checks and generation use the same runtime.
@@ -135,6 +157,7 @@ The dashboard shows:
 - provider health
 - current power mode
 - provider timings on task detail when a rewrite attempt ran
+- the resident-server banner for drafter/writer/judge
 
 Useful URLs:
 
@@ -171,7 +194,6 @@ Current delivered behavior:
   - `neutral`
   - `rejected`
 - carry those source decisions through refresh so user curation persists
-- show a `Grounding Basis` summary in the creator artifact view
 - generate a true 30-day blueprint from the approved research artifact
 - generate a 30-day lesson batch draft from the approved blueprint
 - generate a quiz batch draft from the approved lesson batch
@@ -181,6 +203,8 @@ Current delivered behavior:
 - block `QC Review` acceptance until every injected creator QC task is completed and there are no failed or quarantined creator QC tasks left
 - generate a `Draft To Live` readiness summary from the current QC completion state
 - export a real draft course package (`packageVersion 2.0`) from the reviewed creator payload during `Draft To Live`
+- store structured stage artifacts for `blueprint`, `lesson_generation`, and `quiz_generation` so QC handoff uses validated machine-readable rows instead of reparsing only the human-readable stage text
+- expose QC handoff readiness in the creator payload and UI as `ready / missing stages / draft counts`
 - import the exported package into Amanoba as a draft/inactive course on explicit user action
 - publish the imported draft into Amanoba on a second explicit user action
 - rollback a published Amanoba course back to draft/inactive from the same local creator run
@@ -205,29 +229,28 @@ Current creator UX behavior:
   - stage state
   - QC state
   - release state
-- the creator modal shows a `Lifecycle Checklist` so the user can see readiness state at a glance
-- the modal shows `What Happens Next` to explain the next valid action and downstream consequence
-- the modal shows a stage-specific warning so approval risk is explicit
-- the artifact summary now highlights:
-  - `Decision Risk`
-  - `QC Readiness`
-  - `Release Readiness`
-- actions are grouped by intent:
-  - `Stage Workflow`
-  - `Downstream Release`
-  - `Recovery Controls`
-- actions enable only when the current stage and lifecycle state allow them
-- rollback and delete-import are isolated from publish actions so release and recovery cannot be confused
+- the creator card now shows only the current stage, last action, and update time
+- the creator modal is decision-point driven:
+  - show only the current stage content that needs review
+  - show only the actions valid for that stage
+  - keep the user action model simple:
+    - `Accept`
+    - `Modify`
+    - `Delete`
+- `Accept` moves the run to the next stage and starts the next AI step automatically
+- `Modify` moves the run back one stage and starts rework automatically using the user note
+- `Delete` moves the run to trash
+- setup stages show one clear primary action, not a review UI
+- release and recovery actions are shown only in `Draft To Live`
 - the creator modal is stage-focused by default:
   - `Research` shows the research brief and curated source pack only
   - `Blueprint` shows one outline day at a time with next/previous day navigation
   - `Lesson Generation` shows one lesson at a time with next/previous lesson navigation
   - `Quiz Generation` shows one quiz question at a time with next/previous question navigation
   - `QC Review` starts as `QC Setup` until the handoff is created, then switches into QC progress state
-  - `Draft To Live` shows only release state, package, import, and publish readiness
+  - `Draft To Live` shows only the downstream release decision
 - the modal does not repeat the full stage list, because the kanban column already tells the user where the run currently sits
-- raw stage editing is hidden by default and opens only when the user explicitly chooses `Show Edit Panel`
-- setup and release states hide irrelevant controls until those controls are actually valid
+- setup stages hide irrelevant controls and show only the next required step
 
 The creator workflow lives in the local `amanoba_courses` control center, not in `amanoba.com`.
 `amanoba.com` remains the downstream final editing/publishing surface for small modifications after draft creation and QC.

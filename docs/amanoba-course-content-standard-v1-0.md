@@ -6,6 +6,13 @@ Scope: Applies to every lesson and every quiz item in any Amanoba course.
 
 Last updated: 2026-02-05
 
+## Status and SSOT
+
+- **Status:** current content standard
+- **Document owner:** Amanoba course-content maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if the live course/content behavior conflicts with this standard, update the standard to match the current code and runtime before using it as a delivery reference
+
 ---
 
 ## 0) Non-negotiable rules

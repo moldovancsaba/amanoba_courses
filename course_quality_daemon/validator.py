@@ -230,6 +230,191 @@ GENERIC_LANGUAGE_MARKERS: dict[str, tuple[str, ...]] = {
     "tr": ("neden", "hangi", "nasıl", "durum", "karar", "doğru", "gerekir"),
 }
 
+LESSON_SECTION_MARKERS: dict[str, tuple[str, ...]] = {
+    "en": (
+        "learning goal",
+        "who",
+        "what",
+        "where",
+        "when",
+        "why it matters",
+        "how",
+        "guided exercise",
+        "independent exercise",
+        "self-check",
+        "bibliography",
+    ),
+    "hu": (
+        "tanulási cél",
+        "ki",
+        "mi",
+        "hol",
+        "mikor",
+        "miért fontos",
+        "hogyan",
+        "irányított gyakorlat",
+        "önálló gyakorlat",
+        "önellenőrzés",
+        "bibliográfia",
+    ),
+    "pl": (
+        "cel nauki",
+        "kto",
+        "co",
+        "gdzie",
+        "kiedy",
+        "dlaczego to ważne",
+        "jak",
+        "ćwiczenie prowadzone",
+        "ćwiczenie samodzielne",
+        "samokontrola",
+        "bibliografia",
+    ),
+    "pt": (
+        "objetivo de aprendizado",
+        "quem",
+        "o que",
+        "onde",
+        "quando",
+        "por que é importante",
+        "como",
+        "exercício guiado",
+        "exercício independente",
+        "autoavaliação",
+        "bibliografia",
+    ),
+    "es": (
+        "objetivo de aprendizaje",
+        "quién",
+        "qué",
+        "dónde",
+        "cuándo",
+        "por qué importa",
+        "cómo",
+        "ejercicio guiado",
+        "ejercicio independiente",
+        "autoevaluación",
+        "bibliografía",
+    ),
+    "vi": (
+        "mục tiêu học tập",
+        "ai",
+        "gì",
+        "ở đâu",
+        "khi nào",
+        "tại sao điều này quan trọng",
+        "như thế nào",
+        "bài tập có hướng dẫn",
+        "bài tập độc lập",
+        "tự kiểm tra",
+        "tài liệu tham khảo",
+    ),
+    "id": (
+        "tujuan belajar",
+        "siapa",
+        "apa",
+        "di mana",
+        "kapan",
+        "mengapa ini penting",
+        "bagaimana",
+        "latihan terpandu",
+        "latihan mandiri",
+        "pemeriksaan mandiri",
+        "bibliografi",
+    ),
+    "ar": (
+        "هدف التعلّم",
+        "من",
+        "ماذا",
+        "أين",
+        "متى",
+        "لماذا هذا مهم",
+        "كيف",
+        "تمرين موجّه",
+        "تمرين مستقل",
+        "تحقق ذاتي",
+        "المراجع",
+    ),
+    "bg": (
+        "учебна цел",
+        "кой",
+        "какво",
+        "къде",
+        "кога",
+        "защо е важно",
+        "как",
+        "насочено упражнение",
+        "самостоятелно упражнение",
+        "самопроверка",
+        "библиография",
+    ),
+    "hi": (
+        "सीखने का लक्ष्य",
+        "कौन",
+        "क्या",
+        "कहाँ",
+        "कब",
+        "यह क्यों महत्वपूर्ण है",
+        "कैसे",
+        "निर्देशित अभ्यास",
+        "स्वतंत्र अभ्यास",
+        "स्व-जांच",
+        "संदर्भ",
+    ),
+    "ru": (
+        "цель обучения",
+        "кто",
+        "что",
+        "где",
+        "когда",
+        "почему это важно",
+        "как",
+        "упражнение с сопровождением",
+        "самостоятельное упражнение",
+        "самопроверка",
+        "библиография",
+    ),
+    "sw": (
+        "lengo la kujifunza",
+        "nani",
+        "nini",
+        "wapi",
+        "lini",
+        "kwa nini hili ni muhimu",
+        "jinsi",
+        "zoezi la mwongozo",
+        "zoezi la kujitegemea",
+        "kujihakiki",
+        "marejeleo",
+    ),
+    "sv": (
+        "lärandemål",
+        "vem",
+        "vad",
+        "var",
+        "när",
+        "varför det är viktigt",
+        "hur",
+        "guidad övning",
+        "självständig övning",
+        "självkontroll",
+        "bibliografi",
+    ),
+    "tr": (
+        "öğrenme hedefi",
+        "kim",
+        "ne",
+        "nerede",
+        "ne zaman",
+        "neden önemli",
+        "nasıl",
+        "yönlendirmeli alıştırma",
+        "bağımsız alıştırma",
+        "öz kontrol",
+        "bibliyografi",
+    ),
+}
+
 
 def _language_scores(text: str) -> dict[str, int]:
     lowered = text.lower()
@@ -430,6 +615,25 @@ def audit_lesson(lesson: dict[str, Any], target_language: str | None = None) -> 
         warnings.append("Email subject is short.")
     if len(email_body) < 120:
         warnings.append("Email body is short.")
+
+    target = str(target_language or "").strip().lower()
+    if target in LESSON_SECTION_MARKERS:
+        markers = LESSON_SECTION_MARKERS[target]
+        lowered = content.lower()
+        missing_sections = [marker for marker in markers if marker not in lowered]
+        if len(missing_sections) >= max(3, len(markers) // 2):
+            errors.append("Lesson does not follow the canonical lesson structure for its course language.")
+        elif missing_sections:
+            warnings.append("Lesson appears incomplete relative to the canonical lesson structure.")
+        heading_count = len(re.findall(r"(?m)^\s*#{2,3}\s+\S+", content))
+        if heading_count < 8:
+            errors.append("Lesson does not contain enough markdown section headings.")
+        if not re.search(r"(?m)^\s*##\s+.+$", content):
+            errors.append("Lesson must contain markdown section headings.")
+    else:
+        heading_count = len(re.findall(r"(?m)^\s*#{2,3}\s+\S+", content))
+        if heading_count < 6:
+            errors.append("Lesson does not contain enough markdown section headings.")
 
     errors.extend(_language_purity_errors([title, content, email_subject, email_body], target_language))
 

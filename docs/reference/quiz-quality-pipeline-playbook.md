@@ -2,6 +2,22 @@
 
 This is the repeatable, high-quality workflow to keep quizzes aligned with lesson content across **any course** and **any language**.
 
+Applies to: **Amanoba v0.2.0**.
+
+## Status and SSOT
+
+- **Status:** current reference procedure
+- **Document owner:** Amanoba course/QC maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if a newer runtime behavior conflicts with this playbook, update the playbook to match the live code before using it for delivery
+
+## Ownership and SSOT
+
+- **Document owner:** Amanoba course/QC maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Procedure SSOT:** this playbook plus `docs/reference/quiz-quality-pipeline-handover.md`
+- **Runtime version:** `Amanoba v0.2.0`
+
 ## Core principles (non‑negotiable)
 
 - **NO QUALITY EXCEPTION ACCEPTED**: No course, lesson, or quiz may bypass or receive exceptions from these quality gates. Every piece of content must meet the requirements.

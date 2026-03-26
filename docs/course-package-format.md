@@ -4,6 +4,13 @@
 **Used by**: `GET /api/admin/courses/[courseId]/export`, `POST /api/admin/courses/import`.  
 **Schema version**: `2.0`.
 
+## Status and SSOT
+
+- **Status:** current package format specification
+- **Document owner:** Amanoba course-creation maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if the live import/export behavior differs, update this format document before using it as a delivery reference
+
 ---
 
 ## Top-level shape (single JSON)

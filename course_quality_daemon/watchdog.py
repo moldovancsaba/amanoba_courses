@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -46,6 +47,8 @@ class CourseQualityWatchdog:
         self.mlx_process_timeout_seconds = int(
             self.watchdog_config.get("mlx_process_timeout_seconds") or max(self.mlx_timeout_seconds + 45, 600)
         )
+        self.memory_pressure_swap_mb = int(self.watchdog_config.get("memory_pressure_swap_mb") or 512)
+        self.memory_pressure_free_pages = int(self.watchdog_config.get("memory_pressure_free_pages") or 15000)
 
     def run_once(self, incident: dict[str, Any] | None = None) -> dict[str, Any]:
         actions: list[dict[str, Any]] = []
@@ -119,7 +122,14 @@ class CourseQualityWatchdog:
         runtime_before = self.daemon.runtime.health_snapshot()
         dashboard_runtime = self._dashboard_runtime_snapshot()
         actions.extend(self._repair_runtime_providers(runtime_before, dashboard_runtime))
+        memory_pressure = self._memory_pressure_status()
+        if memory_pressure.get("degraded"):
+            actions.append({"type": "memory-pressure-detected", **memory_pressure})
+            warmed = self._warm_creator_roles_after_pressure(memory_pressure)
+            if warmed:
+                actions.append({"type": "warm-creator-roles-after-pressure", "roles": warmed})
         runtime_after = self.daemon.runtime.health_snapshot()
+        creator_pipeline = self.daemon._creator_pipeline_manifest()
 
         if incident:
             actions.extend(self._handle_incident(incident, dashboard_ok=dashboard_ok, ollama_ok=ollama_ok))
@@ -138,7 +148,9 @@ class CourseQualityWatchdog:
             "ollamaHealthy": self._ollama_healthy(),
             "runtime": runtime_after,
             "dashboardRuntime": dashboard_runtime,
+            "creatorPipeline": creator_pipeline,
             "providerIssues": self._provider_issues(runtime_after),
+            "creatorPipelineIssues": self._creator_pipeline_issues(creator_pipeline),
             "activeWorkerProcesses": self._active_qc_processes(),
             "activeMlxWorkerProcesses": self._active_mlx_worker_processes(),
             "actions": actions,
@@ -414,6 +426,79 @@ class CourseQualityWatchdog:
         except Exception:
             return False
 
+    def _memory_pressure_status(self) -> dict[str, Any]:
+        swap_used_mb = 0
+        swap_free_mb = 0
+        swap_total_mb = 0
+        free_pages = None
+        degraded = False
+        details: list[str] = []
+        try:
+            swap = subprocess.run(["sysctl", "-n", "vm.swapusage"], capture_output=True, text=True, check=False)
+            text = (swap.stdout or swap.stderr or "").strip()
+            # Example: total = 16384.00M  used = 1024.00M  free = 15360.00M  (encrypted)
+            for token in text.replace("(", " ").replace(")", " ").replace(",", " ").split():
+                if token == "total" or token == "used" or token == "free":
+                    continue
+            match = re.findall(r"(total|used|free)\s*=\s*([0-9.]+)M", text)
+            for kind, value in match:
+                mb = int(float(value))
+                if kind == "total":
+                    swap_total_mb = mb
+                elif kind == "used":
+                    swap_used_mb = mb
+                elif kind == "free":
+                    swap_free_mb = mb
+            if swap_used_mb >= self.memory_pressure_swap_mb:
+                degraded = True
+                details.append(f"swap used {swap_used_mb}MB")
+        except Exception:
+            pass
+        try:
+            vm = subprocess.run(["vm_stat"], capture_output=True, text=True, check=False)
+            pages = self._parse_vm_stat(vm.stdout or "")
+            free_pages = int(pages.get("Pages free") or 0)
+            if free_pages and free_pages <= self.memory_pressure_free_pages:
+                degraded = True
+                details.append(f"free pages {free_pages}")
+        except Exception:
+            pass
+        return {
+            "degraded": degraded,
+            "swapUsedMb": swap_used_mb,
+            "swapFreeMb": swap_free_mb,
+            "swapTotalMb": swap_total_mb,
+            "freePages": free_pages,
+            "detail": "; ".join(details) if details else "memory pressure not detected",
+        }
+
+    def _parse_vm_stat(self, text: str) -> dict[str, int]:
+        pages: dict[str, int] = {}
+        for line in text.splitlines():
+            line = line.strip()
+            if not line or ":" not in line:
+                continue
+            key, raw_value = line.split(":", 1)
+            digits = "".join(ch for ch in raw_value if ch.isdigit())
+            if not digits:
+                continue
+            pages[key.strip()] = int(digits)
+        return pages
+
+    def _warm_creator_roles_after_pressure(self, memory_pressure: dict[str, Any]) -> dict[str, bool]:
+        warmed: dict[str, bool] = {}
+        try:
+            warmed = self.daemon.runtime.warm_creator_roles()
+        except Exception:
+            warmed = {}
+        if not warmed:
+            # Fall back to a direct health pass if warm hooks are unavailable.
+            warmed = {
+                role: bool(self.daemon.runtime.creator_role_health(role).get("available"))
+                for role in ("drafter", "writer", "judge")
+            }
+        return warmed
+
     def _needs_full_restart(self, state: dict[str, Any]) -> bool:
         raw = str(state.get("lastFullRestartAt") or "").strip()
         if not raw:
@@ -472,6 +557,35 @@ class CourseQualityWatchdog:
                     "endpoint": None,
                 }
             )
+        return issues
+
+    def _creator_pipeline_issues(self, creator_pipeline: dict[str, Any]) -> list[dict[str, Any]]:
+        issues: list[dict[str, Any]] = []
+        for role, item in creator_pipeline.items():
+            if not isinstance(item, dict):
+                continue
+            if not bool(item.get("installed")):
+                issues.append(
+                    {
+                        "role": role,
+                        "status": "MISSING",
+                        "detail": f"{item.get('model') or '-'} is not installed.",
+                        "tool": item.get("tool"),
+                        "model": item.get("model"),
+                        "location": item.get("location"),
+                    }
+                )
+            elif str(item.get("state") or "").strip().lower() == "degraded":
+                issues.append(
+                    {
+                        "role": role,
+                        "status": "DEGRADED",
+                        "detail": str(item.get("description") or "Role is degraded."),
+                        "tool": item.get("tool"),
+                        "model": item.get("model"),
+                        "location": item.get("location"),
+                    }
+                )
         return issues
 
     def _repair_runtime_providers(self, runtime_snapshot: dict[str, Any], dashboard_runtime: dict[str, Any] | None = None) -> list[dict[str, Any]]:

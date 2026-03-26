@@ -2,6 +2,17 @@
 
 This guide explains what you can do from the macOS menu bar app (`AmanobaMenubar`).
 
+Current build version:
+
+- `Amanoba v0.2.0`
+
+## Status and SSOT
+
+- **Status:** current user guide
+- **Document owner:** Amanoba maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if the menubar changes, update this guide to match the rebuilt app before using it as user-facing documentation
+
 ## Install
 
 ```bash
@@ -23,10 +34,16 @@ bash tools/macos/AmanobaMenubar/run_AmanobaMenubar.sh
 
 ## What You See
 
-- `Amanoba v0.1.0`
-- `Health: dashboard up|down`
+- `Amanoba v0.2.0`
+- `Health: dashboard up | worker idle|working|stalled`
 - `Power: gentle|balanced|fast`
 - `Jobs: pending | running | done | failed`
+- a compact `Model Roster` in the dashboard with five live entries:
+  - `DRAFTER`
+  - `WRITER`
+  - `JUDGE`
+  - `mlx`
+  - `ollama`
 
 The menu-bar title uses simple color states:
 
@@ -36,35 +53,32 @@ The menu-bar title uses simple color states:
 
 ## Daily Actions
 
-- `Open Control Center`
-- `Open Feed JSON`
-- `Open Health JSON`
-- `Process One Job`
-- `Scan Workspace`
+- `Open Dashboard`
+- `Restart Services`
+- `Shutdown Services`
+- `Quit`
 
-The control center opens the kanban board where you can inspect completed cards in a modal and challenge a result back into the queue with a single comment.
-`Process One Job` does not create a second independent QC worker. It asks the live dashboard/daemon to advance the queue within the current single-worker model.
+`Open Dashboard` opens the browserview control center. The current UI shows the `Course Creator` and `Quality Control` pages and the live queue.
 
-## Power Control
+`Restart Services` bootstraps the worker, dashboard, watchdog, and Ollama launch agents again.
 
-- `Set Gentle Mode`
-- `Set Balanced Mode`
-- `Set Fast Mode`
+`Shutdown Services` boots those launch agents out of `gui/$UID`.
 
-These actions call the dashboard power-mode API and persist the chosen mode to `course_quality_daemon.json`.
+`Quit` closes the menubar app after requesting service shutdown.
 
 ## Operations
-
-- `Restart Services`
-- `Install/Refresh Services`
-- `Open Logs Folder`
-
-The underlying background model is:
 
 - one long-lived QC worker daemon
 - one dashboard service
 - one watchdog service
-- MLX/Apertus as the primary writer, with Ollama used only as fallback when MLX is unavailable
+- the dashboard shows the live model roster in one horizontal row instead of split runtime panels
+- resident MLX creator roles for:
+  - drafter on `8080`
+  - writer on `8081`
+  - judge on `8082`
+- Ollama fallback with `keep_alive`
+- launch agents wrapped in `caffeinate -dimsu`
+- menubar title uses only short role labels, not model paths
 
 ## Auto-Launch
 

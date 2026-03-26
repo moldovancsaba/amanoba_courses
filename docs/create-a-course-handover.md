@@ -6,10 +6,23 @@ If you follow this exactly, you will:
 1) Resume the latest in-progress course run safely, **or**
 2) Start a new course from an idea and ship it to “ready to enroll” with strict quality gates.
 
+## Status and SSOT
+
+- **Status:** current operational handover
+- **Document owner:** Amanoba course-creation maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if this handover conflicts with the current SSOT or live code/runtime, update the handover before using it for delivery decisions
+
 Current product-surface rule:
 
 - sovereign course creation now lives primarily in the local `amanoba_courses` browserview control center
 - the local UI surface is split into `Course Creator` and `Quality Control`
+- the creator workflow is decision-point driven:
+  - show only the current stage content
+  - let the user `Accept`, `Modify`, or `Delete`
+  - `Accept` moves forward and starts the next AI step automatically
+  - `Modify` moves back one stage and starts rework automatically using the user note
+  - `Delete` moves the run to trash
 - approved creator drafts enter the local QC queue from the `QC Review` stage and are improved there before any publish decision
 - `Draft To Live` now performs the full controlled downstream handoff:
   - export a concrete local draft package

@@ -2,6 +2,13 @@
 
 This file is a **copy/paste prompt library** for creating, auditing, and fixing courses + quizzes with maximum quality.
 
+## Status and SSOT
+
+- **Status:** current prompt library
+- **Document owner:** Amanoba course-creation maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if a prompt conflicts with the current SSOT or live behavior, update the prompt before using it for delivery work
+
 ## Prerequisites (for any prompt that changes code/DB)
 - You (the agent) must **read and follow**:
   - `agent_working_loop_canonical_operating_document.md`

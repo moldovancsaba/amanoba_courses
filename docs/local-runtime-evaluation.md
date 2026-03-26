@@ -1,11 +1,19 @@
 # Local Runtime Evaluation
 
+## Status and SSOT
+
+- **Status:** supporting migration note
+- **Document owner:** Amanoba maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if this note conflicts with the current code or runtime docs, the code/runtime docs win and this file should be updated or treated as historical context
+
 ## What was checked
 
-- `{hatori}` uses local adapters for `ollama` and `llama.cpp`, with health checks and offline-first routing.
-- `{reply}` uses `ollama` directly as its local LLM backend.
-- `openclaw` contains mature control UI and macOS menubar packaging patterns, but it is a much larger TypeScript system than this course worker needs.
-- `{sovereign}` contains the strongest restart-proof launchd patterns and a practical confidence/trust-tier model.
+- Offline-first local routing patterns for resident model servers and fallback models.
+- A single continuous worker loop with health checks, heartbeat tracking, and watchdog repair.
+- macOS menubar packaging for a small operator-facing control surface.
+- Restart-proof launchd patterns with `RunAtLoad`, `KeepAlive`, and `StartInterval` where appropriate.
+- Confidence/trust-tier style state reporting for queue items and live runtime health.
 
 ## Decision for Amanoba
 
@@ -25,7 +33,8 @@ The code still keeps an internal null provider as a guard rail, but it is not pa
 - `ollama`: installed locally.
 - `mlx`: installed locally.
 - `mlx_lm`: installed and usable for text-generation.
-- hardware: Apple Silicon (`Apple M1 Pro`).
+- hardware: Apple Silicon.
+- resident creator roles are served on local ports `8080`, `8081`, and `8082`.
 
 ## Sovereign patterns adopted
 
@@ -36,10 +45,11 @@ The code still keeps an internal null provider as a guard rail, but it is not pa
 - optional managed local `ollama` service
 - dedicated MLX interpreter for health checks and generation
 - watchdog-enforced primary writer policy for MLX/Apertus
+- resident creator role servers that stay warm across requests
 - low-power Ollama defaults for fallback background rewriting
 - confidence score + trust tier on queued and completed jobs
 - health snapshot for provider selection and dashboard display
 
-## Why not directly embed Hatori, Reply, OpenClaw, or Sovereign
+## Why keep this standalone
 
-They are useful references, but coupling this project directly to those codebases would create unnecessary dependency and maintenance risk. The correct move here is to copy the proven patterns, not add a runtime dependency on those repos.
+The current system should stay self-contained. The implementation copies the useful patterns, but it does not depend on any of the older systems at runtime. That keeps the Mac mini migration simpler and avoids hidden coupling to other codebases.
