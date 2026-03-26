@@ -3336,28 +3336,12 @@ class CourseQualityDaemon:
             )
         if active_stage == "qc_review":
             self._creator_assert_qc_handoff_ready(detail)
-            current_artifact = self._creator_stage_seed_artifact(detail, active_stage, stage_artifacts)
-            context_artifacts = {
-                key: str((value or {}).get("content") or "")
-                for key, value in (stage_artifacts or {}).items()
-            }
-            judge_result = self.runtime.generate_creator_stage(
-                stage_key=active_stage,
-                topic=str(detail.get("topic") or ""),
-                target_language=str(detail.get("targetLanguage") or ""),
-                research_mode=str(detail.get("researchMode") or ""),
-                current_artifact=current_artifact,
-                context_artifacts=context_artifacts,
-                source_pack=source_pack,
-                revision_request=revision_request,
-            )
-            judge_content = str(judge_result.get("content") or "").strip()
             qc_handoff = self._creator_enqueue_qc_review(detail)
             result = {
-                "provider": str(judge_result.get("provider") or "creator-qc-handoff"),
+                "provider": "creator-qc-handoff",
                 "role": "judge",
-                "content": judge_content or qc_handoff["content"],
-                "warning": str(judge_result.get("warning") or ""),
+                "content": qc_handoff["content"],
+                "warning": "",
             }
             generated_content = result["content"]
             updated = self.state.creator_save_artifact(run_id, result["content"], active_stage)
@@ -3366,33 +3350,18 @@ class CourseQualityDaemon:
             updated_payload["qcJudge"] = {
                 "provider": result["provider"],
                 "role": "judge",
-                "model": str(judge_result.get("model") or ""),
+                "model": "",
                 "content": result["content"],
                 "generatedAt": utc_now(),
                 "provenance": self._creator_stage_provenance(detail, active_stage, result, revision_request),
             }
         elif active_stage == "draft_to_live":
-            current_artifact = self._creator_stage_seed_artifact(detail, active_stage, stage_artifacts)
-            context_artifacts = {
-                key: str((value or {}).get("content") or "")
-                for key, value in (stage_artifacts or {}).items()
-            }
-            judge_result = self.runtime.generate_creator_stage(
-                stage_key=active_stage,
-                topic=str(detail.get("topic") or ""),
-                target_language=str(detail.get("targetLanguage") or ""),
-                research_mode=str(detail.get("researchMode") or ""),
-                current_artifact=current_artifact,
-                context_artifacts=context_artifacts,
-                source_pack=source_pack,
-                revision_request=revision_request,
-            )
-            draft_summary_content = str(judge_result.get("content") or "").strip() or self._creator_build_draft_to_live_summary(detail)
+            draft_summary_content = self._creator_build_draft_to_live_summary(detail)
             result = {
-                "provider": str(judge_result.get("provider") or "creator-draft-summary"),
+                "provider": "creator-draft-summary",
                 "role": "judge",
                 "content": draft_summary_content,
-                "warning": str(judge_result.get("warning") or ""),
+                "warning": "",
             }
             generated_content = result["content"]
             updated = self.state.creator_save_artifact(run_id, draft_summary_content, active_stage)
@@ -3400,7 +3369,7 @@ class CourseQualityDaemon:
             updated_payload["draftToLiveJudge"] = {
                 "provider": result["provider"],
                 "role": "judge",
-                "model": str(judge_result.get("model") or ""),
+                "model": "",
                 "content": draft_summary_content,
                 "generatedAt": utc_now(),
                 "provenance": self._creator_stage_provenance(detail, active_stage, result, revision_request),
@@ -4056,18 +4025,70 @@ class CourseQualityDaemon:
             return False, "The generated artifact is empty."
         if self._creator_is_placeholder_artifact(stage_key, normalized):
             return False, "The generated artifact is still only a placeholder."
+        if stage_key == "research":
+            sections = self._creator_parse_research_sections(normalized)
+            required = [
+                "Learner Problem",
+                "Audience",
+                "Outcomes",
+                "Scope Boundaries",
+                "Evidence Needs",
+            ]
+            missing = [heading for heading in required if not sections.get(heading)]
+            if missing:
+                return False, f"Research must include usable sections for: {', '.join(missing)}."
+            if normalized.count("# Research Artifact Draft") > 1:
+                return False, "Research repeats the same draft block instead of producing one clean brief."
+            keywords = self._topic_keywords(" ".join(sections.get("Learner Problem", []) + sections.get("Outcomes", [])))
+            if not keywords and len(normalized) < 600:
+                return False, "Research is too thin and generic to drive the next stage."
         if stage_key == "blueprint":
             rows = self._creator_parse_blueprint_days(normalized)
             if len(rows) < 30:
                 return False, f"Blueprint must contain 30 day rows in the required format, but only {len(rows)} were parsed."
+            short_topic = self._creator_topic_short_title(re.search(r"## Working Title\n(.+?)\n", normalized, flags=re.DOTALL).group(1).strip() if re.search(r"## Working Title\n(.+?)\n", normalized, flags=re.DOTALL) else "")
+            generic_deliverables = 0
+            repetitive_titles = 0
+            for row in rows:
+                title = str(row.get("title") or "").strip()
+                deliverable = str(row.get("deliverable") or "").strip().lower()
+                if short_topic and title.lower().startswith(short_topic.lower() + ":"):
+                    repetitive_titles += 1
+                if re.search(r"\bdeliverable\b.*\bday\b", deliverable):
+                    generic_deliverables += 1
+            if repetitive_titles > 10:
+                return False, "Blueprint still repeats the course title too heavily in daily lesson titles."
+            if generic_deliverables > 3:
+                return False, "Blueprint still contains generic day-based deliverables instead of concrete outputs."
         elif stage_key == "lesson_generation":
             rows = self._creator_parse_lesson_batch_rows(normalized)
             if len(rows) < 30:
                 return False, f"Lesson generation must contain 30 lesson draft rows in the required format, but only {len(rows)} were parsed."
+            weak_rows = 0
+            for row in rows:
+                lesson_body = str(row.get("lesson_body") or "")
+                email_body = str(row.get("email_body") or "")
+                if lesson_body.count("## ") < 4 or len(email_body.strip()) < 40:
+                    weak_rows += 1
+            if weak_rows > 2:
+                return False, "Lesson generation still contains too many weak lesson or email drafts."
         elif stage_key == "quiz_generation":
             rows = self._creator_parse_quiz_batch_rows(normalized)
             if len(rows) < 30:
                 return False, f"Quiz generation must contain structured quiz rows in the required format, but only {len(rows)} were parsed."
+            day_counts: dict[str, int] = {}
+            weak_rows = 0
+            for row in rows:
+                day = str(row.get("day") or "")
+                day_counts[day] = day_counts.get(day, 0) + 1
+                stem = str(row.get("stem_focus") or "").strip()
+                distractors = str(row.get("distractor_themes") or "").strip().lower()
+                if len(stem) < 40 or "generic action" in distractors and "theory without execution" in distractors:
+                    weak_rows += 1
+            if len(day_counts) < 30 or any(count < 7 for count in day_counts.values()):
+                return False, "Quiz generation must contain 7 usable question drafts for each of the 30 days."
+            if weak_rows > 10:
+                return False, "Quiz generation still contains too many weak or generic question intents."
         return True, ""
 
     def _creator_structured_artifacts(self, detail: dict[str, Any]) -> dict[str, Any]:

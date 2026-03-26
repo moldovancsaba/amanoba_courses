@@ -19,6 +19,36 @@ This tool gives you a local, continuous worker that:
 - **Runtime SSOT:** `docs/current-ssot.md`
 - **Conflict rule:** if the live daemon/dashboard/watchdog behavior differs, update this document before using it as an operational reference
 
+## Fresh machine bootstrap
+
+If you are installing the QC app on a new Mac or restoring a machine from scratch, bootstrap the local env file from the linked Vercel project before you start the daemon.
+
+Required local env file:
+
+- `.env.local`
+
+Minimum required values for the QC runtime:
+
+- `MONGODB_URI`
+- `DB_NAME=amanoba`
+- optional: `OPENAI_API_KEY` if you want the OpenAI fallback path enabled
+
+Supported bootstrap flow:
+
+```bash
+vercel login
+vercel link
+vercel env ls
+vercel env pull .env.local
+```
+
+Notes:
+
+- `vercel link` ties the local workspace to the correct Vercel project.
+- `vercel env pull .env.local` pulls the project environment variables that the local scripts need into the `.env.local` file that the QC runtime already reads.
+- If the machine is missing `.env.local`, this is the supported way to recreate it from the project’s Vercel environment.
+- After pulling env vars, verify that `MONGODB_URI` and `DB_NAME` are present before starting the launch agents.
+
 ## Files
 
 - `course_quality_daemon/` — Python package
@@ -143,6 +173,7 @@ Creator UX behavior:
 - the creator modal is decision-point driven:
   - show only the current stage content that needs review
   - show only the valid actions for that stage
+  - hide internal run metadata and duplicate pipeline/status noise
 - the user action model is simple across the pipeline:
   - `Accept`
   - `Modify`

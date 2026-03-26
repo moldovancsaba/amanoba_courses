@@ -96,6 +96,36 @@ The short labels are deliberate. The interface does not show long filesystem pat
 - The dashboard does not show internal paths as the primary model labels.
 - The system can still be slowed by macOS memory pressure, but the watchdog will try to recover resident models automatically.
 
+## Fresh install / bootstrap
+
+If you are installing the QC system on a new machine, recreate the local env file from the linked Vercel project before starting the services.
+
+Required local file:
+
+- `.env.local`
+
+Minimum required values:
+
+- `MONGODB_URI`
+- `DB_NAME=amanoba`
+- optional: `OPENAI_API_KEY` if you want the OpenAI fallback path
+
+Bootstrap commands:
+
+```bash
+vercel login
+vercel link
+vercel env ls
+vercel env pull .env.local
+```
+
+Then:
+
+1. Verify `.env.local` contains `MONGODB_URI` and `DB_NAME`.
+2. Install or refresh the launch agents.
+3. Start the dashboard, worker, and watchdog.
+4. Confirm the resident roles are up on `8080`, `8081`, and `8082`.
+
 ## Short version
 
 - Use the menubar for quick status.

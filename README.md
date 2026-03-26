@@ -225,11 +225,11 @@ Current creator UX behavior:
   - `QC Review`
   - `Draft To Live`
   - `Done`
-- creator run cards now show readiness badges before opening:
-  - stage state
-  - QC state
-  - release state
-- the creator card now shows only the current stage, last action, and update time
+- creator run cards now stay minimal:
+  - current state
+  - language and research mode
+  - last action
+  - updated time
 - the creator modal is decision-point driven:
   - show only the current stage content that needs review
   - show only the actions valid for that stage

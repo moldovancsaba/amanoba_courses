@@ -851,7 +851,7 @@ HTML = """<!doctype html>
         </div>
       </div>
       <div class='stack'>
-        <div class='rail-card tiny' id='creatorModalSummary'>Loading...</div>
+        <div class='rail-card tiny' id='creatorModalSummary' style='display:none;'>Loading...</div>
         <div id='creatorWorkflowBannerSection'>
         <div class='label' id='creatorWorkflowBannerLabel'>Current State</div>
           <div class='workflow-banner' id='creatorWorkflowBanner'>Loading...</div>
@@ -906,7 +906,7 @@ HTML = """<!doctype html>
         </div>
         <div>
           <div class='label' id='creatorProcessControlsLabel'>Action</div>
-          <div class='inline-feedback info' id='creatorActionFeedback'>No action yet.</div>
+          <div class='inline-feedback info hidden-panel' id='creatorActionFeedback'></div>
           <textarea id='creatorComment' placeholder='Write what to change. If you click Make New Draft, the system will use this note.'></textarea>
           <div class='action-board'>
             <div class='action-group' id='creatorStageActionGroup'>
@@ -1138,26 +1138,28 @@ function setElementVisible(id, visible) {
 function setInlineFeedback(id, kind, message) {
   const el = document.getElementById(id);
   if (!el) return;
+  const text = String(message || '').trim();
   el.className = `inline-feedback ${kind || 'info'}`;
-  el.textContent = message || 'No action yet.';
+  el.textContent = text;
+  el.classList.toggle('hidden-panel', !text);
 }
 function rememberCreatorFeedback(kind, message, runId = null) {
   creatorFeedbackState = {
     kind: kind || 'info',
-    message: message || 'No action yet.',
+    message: String(message || '').trim(),
     runId: runId || currentCreatorRunId || null,
     stageKey: currentCreatorStageKey || null,
   };
 }
 function clearCreatorFeedback(runId = null) {
   if (!creatorFeedbackState) {
-    setInlineFeedback('creatorActionFeedback', 'info', 'No action yet.');
+    setInlineFeedback('creatorActionFeedback', 'info', '');
     return;
   }
   if (!runId || !creatorFeedbackState.runId || creatorFeedbackState.runId === runId) {
     creatorFeedbackState = null;
   }
-  setInlineFeedback('creatorActionFeedback', 'info', 'No action yet.');
+  setInlineFeedback('creatorActionFeedback', 'info', '');
 }
 function applyCreatorFeedback(runId = null) {
   if (
@@ -1168,7 +1170,7 @@ function applyCreatorFeedback(runId = null) {
     setInlineFeedback('creatorActionFeedback', creatorFeedbackState.kind, creatorFeedbackState.message);
     return;
   }
-  setInlineFeedback('creatorActionFeedback', 'info', 'No action yet.');
+  setInlineFeedback('creatorActionFeedback', 'info', '');
 }
 function setButtonBusy(id, busy, busyLabel = 'Working...') {
   const button = document.getElementById(id);
@@ -1609,7 +1611,7 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
   const payload = (run && run.payload) || {};
   const content = String((activeArtifact && activeArtifact.content) || '').trim();
   if (activeStageKey === 'research') {
-    metaHost.textContent = 'Review the approved research brief and curate the evidence set before moving to blueprint.';
+    metaHost.textContent = '';
     bodyHost.innerHTML = content ? renderRichText(content) : "<div class='empty'>No research brief yet.</div>";
     return;
   }
@@ -1617,14 +1619,14 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
     const rows = parseCreatorBlueprintDays(content);
     if (!rows.length) {
       document.getElementById('creatorStageFocusLabel').textContent = 'Blueprint Setup';
-      metaHost.textContent = 'There is no blueprint outline yet.';
-      bodyHost.innerHTML = "<div class='empty'>Write a note if needed, then click Make New Draft to create the first blueprint outline.</div>";
+      metaHost.textContent = '';
+      bodyHost.innerHTML = "<div class='empty'>There is no outline yet. Write a note if needed, then click Make New Draft.</div>";
       return;
     }
     const index = Math.min(currentCreatorReviewIndex, rows.length - 1);
     currentCreatorReviewIndex = index;
     const row = rows[index];
-      metaHost.textContent = `Reviewing outline day ${row.day || '-'} of ${rows.length}. Accept, modify, or delete at this decision point.`;
+    metaHost.textContent = `Day ${row.day || '-'} of ${rows.length}`;
     navHost.innerHTML = creatorReviewNav(index, rows.length, 'prevCreatorReviewItem', 'nextCreatorReviewItem', 'Day');
     bodyHost.innerHTML = `
       <div class='human-question'>Day ${escapeHtml(row.day || '-')} — ${escapeHtml(row.title || '-')}</div>
@@ -1639,14 +1641,14 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
     const rows = parseCreatorLessonRows(content);
     if (!rows.length) {
       document.getElementById('creatorStageFocusLabel').textContent = 'Lesson Setup';
-      metaHost.textContent = 'There are no lesson drafts yet.';
-      bodyHost.innerHTML = "<div class='empty'>Write a note if needed, then click Make New Draft to create the lesson draft batch.</div>";
+      metaHost.textContent = '';
+      bodyHost.innerHTML = "<div class='empty'>There are no lesson drafts yet. Write a note if needed, then click Make New Draft.</div>";
       return;
     }
     const index = Math.min(currentCreatorReviewIndex, rows.length - 1);
     currentCreatorReviewIndex = index;
     const row = rows[index];
-    metaHost.textContent = `Reviewing lesson ${index + 1} of ${rows.length}. Accept, modify, or delete at this decision point.`;
+    metaHost.textContent = `Lesson ${index + 1} of ${rows.length}`;
     navHost.innerHTML = creatorReviewNav(index, rows.length, 'prevCreatorReviewItem', 'nextCreatorReviewItem', 'Lesson');
     bodyHost.innerHTML = `
       <div class='human-question'>Day ${escapeHtml(row.day || '-')} — ${escapeHtml(row.lesson_title || '-')}</div>
@@ -1663,14 +1665,14 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
     const rows = parseCreatorQuizRows(content);
     if (!rows.length) {
       document.getElementById('creatorStageFocusLabel').textContent = 'Quiz Setup';
-      metaHost.textContent = 'There are no quiz drafts yet.';
-      bodyHost.innerHTML = "<div class='empty'>Write a note if needed, then click Make New Draft to create the quiz draft batch.</div>";
+      metaHost.textContent = '';
+      bodyHost.innerHTML = "<div class='empty'>There are no quiz drafts yet. Write a note if needed, then click Make New Draft.</div>";
       return;
     }
     const index = Math.min(currentCreatorReviewIndex, rows.length - 1);
     currentCreatorReviewIndex = index;
     const row = rows[index];
-    metaHost.textContent = `Reviewing quiz question ${index + 1} of ${rows.length}. Accept, modify, or delete at this decision point.`;
+    metaHost.textContent = `Question ${index + 1} of ${rows.length}`;
     navHost.innerHTML = creatorReviewNav(index, rows.length, 'prevCreatorReviewItem', 'nextCreatorReviewItem', 'Question');
     bodyHost.innerHTML = `
       <div class='human-question'>Day ${escapeHtml(row.day || '-')} · Question ${escapeHtml(row.question_number || '-')}</div>
@@ -1685,12 +1687,10 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
   if (activeStageKey === 'qc_review') {
     const qc = payload.qcStatus || {};
     if (lifecycle.qcTotal <= 0) {
-      metaHost.textContent = 'QC has not started yet. This stage needs a handoff before there is anything to review.';
+      metaHost.textContent = '';
       bodyHost.innerHTML = `
         <div class='human-question'>QC Setup</div>
-        <div class='choice-item'><strong>Status</strong><br>No creator QC tasks exist yet.</div>
-        <div class='choice-item'><strong>What to do now</strong><br>Click <strong>Start QC Handoff</strong> to inject the creator lesson and quiz drafts into the QC queue.</div>
-        <div class='choice-item'><strong>After that</strong><br>The stage will switch from setup into a live QC progress view.</div>
+        <div class='choice-item'>QC has not started yet. Click <strong>Start QC Handoff</strong>.</div>
       `;
       return;
     }
@@ -1699,13 +1699,11 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
       : (lifecycle.qcRunning > 0 || lifecycle.qcQueued > 0 || lifecycle.qcCompleted < lifecycle.qcTotal
         ? 'QC is currently working through the creator queue.'
         : 'QC is complete and waiting for your approval.');
-    metaHost.textContent = stateText;
+    metaHost.textContent = '';
     bodyHost.innerHTML = `
       <div class='human-question'>QC Review</div>
-      <div class='choice-item'><strong>Status</strong><br>${escapeHtml(stateText)}</div>
-      <div class='choice-item'><strong>Progress</strong><br>${escapeHtml(`${qc.completed || 0}/${qc.total || 0} completed · running ${qc.running || 0} · queued ${qc.queued || 0} · failed ${qc.failed || 0} · quarantined ${qc.quarantined || 0}`)}</div>
-      <div class='choice-item'><strong>Recent completed</strong><br>${escapeHtml(((qc.recentCompleted || []).join(' | ')) || 'No completed creator QC tasks yet.')}</div>
-      <div class='choice-item'><strong>Recent failed</strong><br>${escapeHtml(((qc.recentFailed || []).join(' | ')) || 'No failed creator QC tasks.')}</div>
+      <div class='choice-item'>${escapeHtml(stateText)}</div>
+      <div class='choice-item'>${escapeHtml(`${qc.completed || 0}/${qc.total || 0} completed · running ${qc.running || 0} · queued ${qc.queued || 0} · failed ${qc.failed || 0} · quarantined ${qc.quarantined || 0}`)}</div>
     `;
     return;
   }
@@ -1720,13 +1718,13 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
         : !lifecycle.isPublished
           ? 'The Amanoba draft is ready and waiting for live publish.'
           : 'The course is live in Amanoba and waiting for final local closeout.';
-    metaHost.textContent = statusText;
+    metaHost.textContent = '';
     bodyHost.innerHTML = `
       <div class='human-question'>Release State</div>
-      <div class='choice-item'><strong>Status</strong><br>${escapeHtml(statusText)}</div>
+      <div class='choice-item'>${escapeHtml(statusText)}</div>
       <div class='choice-item'><strong>Draft package</strong><br>${escapeHtml((promotion.packagePath) || 'No package yet.')}</div>
-      <div class='choice-item'><strong>Amanoba draft import</strong><br>${escapeHtml(`${(importStatus.status) || 'not imported'} · ${(importStatus.courseId) || '-'}`)}</div>
-      <div class='choice-item'><strong>Amanoba live publish</strong><br>${escapeHtml(`${(publishStatus.status) || 'not published'} · ${(publishStatus.courseId) || '-'}`)}</div>
+      <div class='choice-item'><strong>Amanoba draft</strong><br>${escapeHtml(`${(importStatus.status) || 'not imported'} · ${(importStatus.courseId) || '-'}`)}</div>
+      <div class='choice-item'><strong>Live</strong><br>${escapeHtml(`${(publishStatus.status) || 'not published'} · ${(publishStatus.courseId) || '-'}`)}</div>
     `;
     return;
   }
@@ -1814,24 +1812,18 @@ function creatorLastAction(run) {
   return '';
 }
 function creatorRunCardMarkup(run) {
-  const stage = run.activeStage || '-';
   const updated = run.updatedAt || '-';
   const targetLanguage = run.targetLanguage || '-';
   const researchMode = run.researchMode || '-';
   const artifactSummaries = run.artifactSummaries || {};
-  const activeSummary = artifactSummaries[stage] || {};
-  const badges = creatorRunBadges(run);
+  const activeSummary = artifactSummaries[run.activeStage || '-'] || {};
   const boardState = creatorBoardState(run);
   const lastAction = creatorLastAction(run);
-  const handoffLine = (((run || {}).draftSummary) || {}).handoffReadiness || '';
   return `<div class='creator-run-card ${escapeHtml(boardState.cls)}' data-run-id='${escapeHtml(run.runId)}' tabindex='0' role='button' onclick='openCreatorRun(this.getAttribute("data-run-id")); return false;' onkeydown='if(event.key==="Enter"||event.key===" "){ event.preventDefault(); openCreatorRun(this.getAttribute("data-run-id")); return false; }'>
     <div class='creator-title'>${escapeHtml(run.topic || run.runId)}</div>
     <div class='creator-status-line'><span class='creator-status-dot'></span>${escapeHtml(boardState.label)}</div>
     <div class='tiny'>language ${escapeHtml(targetLanguage)} | research ${escapeHtml(researchMode)}</div>
-    <div class='tiny'>stage ${escapeHtml(creatorStageLabel(stage))}</div>
-    <div class='badge-row'>${badges.map((badge) => `<span class='pill-badge ${badge.cls}'>${escapeHtml(badge.text)}</span>`).join('')}</div>
     ${activeSummary.headline ? `<div class='tiny'>${escapeHtml(activeSummary.headline)}</div>` : ''}
-    ${handoffLine ? `<div class='tiny'>${escapeHtml(handoffLine)}</div>` : ''}
     ${lastAction ? `<div class='tiny'>${escapeHtml(lastAction)}</div>` : ''}
     <div class='tiny'>updated ${escapeHtml(updated)}</div>
   </div>`;
@@ -1894,6 +1886,7 @@ function updateCreatorModalVisibility(activeStageKey, run = currentCreatorRunDat
   setSectionVisible('creatorDraftSummarySection', false);
   setSectionVisible('creatorArtifactSummarySection', false);
   setSectionVisible('creatorChecklistSection', false);
+  setElementVisible('creatorModalSummary', false);
   setSectionVisible('creatorWorkflowBannerSection', true);
   setSectionVisible('creatorStageWarningSection', false);
   setSectionVisible('creatorStageFocusSection', true);
@@ -2399,7 +2392,7 @@ function mergeCreatorRunIntoSnapshot(run) {
 }
 function openCreateCourseModal() {
   const feedback = document.getElementById('createCourseFeedback');
-  if (feedback) feedback.textContent = 'No action yet.';
+  if (feedback) feedback.textContent = '';
   document.getElementById('createCourseModal').classList.add('open');
 }
 function closeCreateCourseModal() {
@@ -2533,8 +2526,8 @@ async function openCreatorRun(runId) {
   }
   document.getElementById('creatorModal').classList.add('open');
   document.getElementById('creatorModalTitle').textContent = 'Creator Run';
-  document.getElementById('creatorModalMeta').textContent = runId;
-  document.getElementById('creatorModalSummary').textContent = 'Loading...';
+  document.getElementById('creatorModalMeta').textContent = '';
+  document.getElementById('creatorModalSummary').textContent = '';
   document.getElementById('creatorDraftSummary').innerHTML = "<div class='empty'>Loading...</div>";
   document.getElementById('creatorArtifactSummary').innerHTML = "<div class='empty'>Loading...</div>";
   document.getElementById('creatorSourcePack').innerHTML = "<div class='empty'>Loading...</div>";
@@ -2554,11 +2547,11 @@ async function openCreatorRun(runId) {
       return;
     }
     document.getElementById('creatorModalTitle').textContent = run.topic || run.runId;
-    document.getElementById('creatorModalMeta').textContent = `status ${run.status || '-'} | language ${run.targetLanguage || '-'} | research ${run.researchMode || '-'}`;
+    document.getElementById('creatorModalMeta').textContent = `Updated ${run.updatedAt || '-'}`;
     if (!creatorFeedbackState || creatorFeedbackState.kind === 'bad') {
       clearCreatorFeedback(runId);
     }
-    document.getElementById('creatorModalSummary').textContent = `Updated ${run.updatedAt || '-'}`;
+    document.getElementById('creatorModalSummary').textContent = '';
     const draftSummary = run.draftSummary || {};
     const artifactSummaries = run.artifactSummaries || {};
     const stageBlueprint = (run.payload && run.payload.stageBlueprint) || {};
@@ -2696,7 +2689,8 @@ async function openCreatorRun(runId) {
     renderCreatorControls(run);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    document.getElementById('creatorModalSummary').textContent = message;
+    document.getElementById('creatorModalMeta').textContent = '';
+    document.getElementById('creatorModalSummary').textContent = '';
     document.getElementById('creatorDraftSummary').innerHTML = "<div class='empty'>Failed to load creator run.</div>";
     document.getElementById('creatorArtifactSummary').innerHTML = "<div class='empty'>Failed to load creator run.</div>";
     document.getElementById('creatorChecklist').innerHTML = "<div class='empty'>Failed to load creator run.</div>";

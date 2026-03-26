@@ -38,6 +38,14 @@ The active runtime truth for the local quality system is:
 - `.course-quality/reports/feed.json`
 - `.course-quality/reports/watchdog.json`
 
+Portable machine bootstrap:
+
+- the local QC runtime expects `.env.local` to exist on each machine
+- the supported way to recreate `.env.local` on a fresh machine is to link the repo to the correct Vercel project and run `vercel env pull .env.local`
+- minimum local env values: `MONGODB_URI`, `DB_NAME=amanoba`
+- optional fallback env value: `OPENAI_API_KEY`
+- if the machine is missing `.env.local`, do not guess the secrets; pull them from the linked Vercel project instead
+
 The active local product surface is the browserview control center at:
 
 - `http://127.0.0.1:8765`
@@ -81,6 +89,7 @@ Current creator page model:
   - quiz review shows one question at a time
   - QC review starts as `QC Setup` until the handoff exists, then shows QC progress state
   - draft-to-live review shows only the downstream release decision
+- internal run ids, duplicate stage lists, and non-decision noise must stay out of the modal
 - the modal does not repeat the full pipeline stage list once the run is opened
 - the modal shows only the current stage content and the current valid actions
 - the user action model is:
