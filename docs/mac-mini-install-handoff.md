@@ -1,31 +1,32 @@
 # Amanoba Mac Mini Install Handoff
 
-This document is the exact handoff to give an AI agent when installing, validating, and operating Amanoba on a Mac mini.
+Use this document as the single copy-paste handoff for an AI agent that must install, validate, harden, and operate Amanoba on a Mac mini.
 
-It is written to be self-contained: one repository, one order of operations, one command list, one validation path.
+This version is portable. It does not assume a fixed home directory. Substitute `<USER_HOME>` with the actual account home on the target machine, or use `$HOME` directly in shell commands.
 
-## Repository and workspace
+## Repositories
 
 - Product repository: `https://github.com/moldovancsaba/amanoba_courses.git`
-- Local workspace: `/Users/moldovancsaba/Projects/amanoba_courses`
-- Live Amanoba app workspace: `/Users/moldovancsaba/Projects/amanoba`
 - Planning / backlog repository: `https://github.com/moldovancsaba/mvp-factory-control`
 - Planning board: `https://github.com/users/moldovancsaba/projects/1`
 
-## Current runtime target
+## Local Workspaces
+
+- Amanoba courses workspace: `<USER_HOME>/Projects/amanoba_courses`
+- Live Amanoba app workspace: `<USER_HOME>/Projects/amanoba`
+
+## Required Runtime Target
 
 - Current operator-facing build: `Amanoba v0.2.0`
-- The menubar and dashboard must match the current repo state exactly.
-- The menubar must remain a single bundle: `AmanobaMenubar.app`
-- The dashboard must show the compact `Model Roster`
-- The resident creator roles must stay warm on:
-  - `127.0.0.1:8080` for `DRAFTER`
-  - `127.0.0.1:8081` for `WRITER`
-  - `127.0.0.1:8082` for `JUDGE`
+- Menubar bundle: `AmanobaMenubar.app`
+- Dashboard roster: compact `Model Roster`
+- Resident roles:
+  - `DRAFTER` on `127.0.0.1:8080`
+  - `WRITER` on `127.0.0.1:8081`
+  - `JUDGE` on `127.0.0.1:8082`
+- Fallback runtime: `ollama`
 
-## Required tools and models
-
-### Tools
+## Required Tools
 
 - `git`
 - `rg`
@@ -39,52 +40,37 @@ It is written to be self-contained: one repository, one order of operations, one
 - `ollama`
 - `mlx_lm`
 
-### Models
+## Required Models
 
 - `DRAFTER`: Gemma 3 270M
 - `WRITER`: Granite 4.0 350M (H-variant)
 - `JUDGE`: Qwen 2.5 0.5B
-- Fallback runtime: `ollama` with keep-alive behavior
 
-## Required source of truth
+## Source of Truth
 
-Read these before changing anything:
+Read these files before changing anything:
 
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/current-ssot.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/system-versioning.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/local-course-quality-daemon.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/menubar-user-guide.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/user-manual.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/reference/sovereign-course-creator-compatibility-contract.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/reference/quiz-quality-pipeline-handover.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/reference/quiz-quality-pipeline-playbook.md`
-- `/Users/moldovancsaba/Projects/amanoba_courses/docs/reference/course-creation-qa-playbook.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/current-ssot.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/system-versioning.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/local-course-quality-daemon.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/menubar-user-guide.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/user-manual.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/reference/sovereign-course-creator-compatibility-contract.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/reference/quiz-quality-pipeline-handover.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/reference/quiz-quality-pipeline-playbook.md`
+- `<USER_HOME>/Projects/amanoba_courses/docs/reference/course-creation-qa-playbook.md`
 
-## Required machine bootstrap order
-
-1. Pull or clone the repository.
-2. Read the SSOT docs.
-3. Restore or create `.env.local` from the linked Vercel project.
-4. Verify the local QC runtime sees the real MongoDB connection.
-5. Install or refresh launch agents.
-6. Install or refresh the menubar.
-7. Start the QC stack.
-8. Verify the resident models.
-9. Verify the worker and watchdog.
-10. Verify the menubar and dashboard.
-11. Commit and push the final state to `origin/main`.
-
-## Required environment bootstrap
+## Environment Bootstrap
 
 If `.env.local` is missing or stale, recreate it from Vercel before starting the stack.
 
-Required values:
+Required env values:
 
 - `MONGODB_URI`
 - `DB_NAME=amanoba`
 - optional: `OPENAI_API_KEY`
 
-Supported bootstrap commands:
+Use Vercel as the source of truth:
 
 ```bash
 vercel login
@@ -93,29 +79,54 @@ vercel env ls
 vercel env pull .env.local
 ```
 
-After pulling env vars, verify that `.env.local` contains the required values before proceeding.
+Then verify:
 
-## Required command order
+```bash
+rg -n "MONGODB_URI|DB_NAME=amanoba|OPENAI_API_KEY" .env.local
+```
+
+## Required Order
+
+1. Sync the repo.
+2. Read the SSOT docs.
+3. Pull `.env.local` from Vercel.
+4. Verify the environment variables.
+5. Install dependencies if needed.
+6. Install or refresh launch agents.
+7. Install or refresh the menubar.
+8. Start the QC stack.
+9. Verify the resident models.
+10. Verify the dashboard.
+11. Verify the worker and watchdog.
+12. Keep the system awake.
+13. Fix any mismatch between docs and runtime.
+14. Commit and push the final state to `origin/main`.
+
+## Commands in Exact Order
 
 ### 1. Sync repo
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba_courses
+cd "<USER_HOME>/Projects/amanoba_courses"
 git checkout main
-git pull origin main
+git pull --rebase origin main
 ```
 
-### 2. Read the SSOT
+### 2. Read SSOT docs
 
 ```bash
 sed -n '1,220p' docs/current-ssot.md
-sed -n '1,160p' docs/system-versioning.md
-sed -n '1,220p' docs/local-course-quality-daemon.md
-sed -n '1,140p' docs/menubar-user-guide.md
-sed -n '1,160p' docs/user-manual.md
+sed -n '1,200p' docs/system-versioning.md
+sed -n '1,240p' docs/local-course-quality-daemon.md
+sed -n '1,160p' docs/menubar-user-guide.md
+sed -n '1,220p' docs/user-manual.md
+sed -n '1,220p' docs/reference/sovereign-course-creator-compatibility-contract.md
+sed -n '1,220p' docs/reference/quiz-quality-pipeline-handover.md
+sed -n '1,220p' docs/reference/quiz-quality-pipeline-playbook.md
+sed -n '1,220p' docs/reference/course-creation-qa-playbook.md
 ```
 
-### 3. Bootstrap environment
+### 3. Bootstrap environment from Vercel
 
 ```bash
 vercel login
@@ -130,26 +141,26 @@ Then confirm:
 rg -n "MONGODB_URI|DB_NAME=amanoba|OPENAI_API_KEY" .env.local
 ```
 
-### 4. Install dependencies if needed
+### 4. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 5. Install or refresh launch agents
+### 5. Install launch agents
 
 ```bash
 bash scripts/install-course-quality-launchagents.sh
 ```
 
-### 6. Install or refresh the menubar
+### 6. Install the menubar
 
 ```bash
 bash tools/macos/AmanobaMenubar/install_AmanobaMenubar.sh
-open ~/Applications/AmanobaMenubar.app
+open "$HOME/Applications/AmanobaMenubar.app"
 ```
 
-If the menubar looks stale, rerun the installer from the current checkout. The installer is expected to remove the old bundle and replace it cleanly.
+If the menubar looks stale, rerun the installer from the current checkout. The installer must replace the old bundle instead of layering on top of it.
 
 ### 7. Verify services
 
@@ -169,10 +180,11 @@ launchctl print gui/$UID/com.amanoba.coursequality.ollama
 
 ### 9. Verify worker progress
 
-- Confirm `worker working`
+- Confirm the worker is working
 - Confirm `pending` decreases over time
 - Confirm `done` increases over time
-- Confirm the worker does not freeze on a single lesson
+- Confirm the worker does not freeze on one lesson
+- Confirm the watchdog repairs stalls instead of leaving the worker wedged
 
 ### 10. Verify menubar behavior
 
@@ -188,38 +200,27 @@ launchctl print gui/$UID/com.amanoba.coursequality.ollama
 
 ### 11. Keep the machine awake
 
-The stack must run under `caffeinate` or equivalent launch-managed awake behavior so the Mac does not sleep while the QC system is live.
+Run the stack under `caffeinate` or equivalent launch-managed awake behavior so the Mac does not sleep while Amanoba is live.
 
-### 12. Commit and push
+### 12. Fix any mismatch
+
+- Update docs if the code/runtime changed.
+- Update code if the docs reflect the intended live runtime and the implementation drifted.
+- Remove stale bundles or stale references.
+
+### 13. Commit and push
 
 ```bash
 git status --short
 git add -A
-git commit -m "Bring Amanoba Mac mini handoff into sync"
+git commit -m "Sync Amanoba Mac mini handoff"
 git push origin main
 ```
 
-## Exact task order for the agent
-
-1. Sync the repo.
-2. Read the SSOT.
-3. Pull `.env.local` from Vercel.
-4. Verify MongoDB and environment variables.
-5. Install dependencies.
-6. Install launch agents.
-7. Install the menubar.
-8. Start the stack.
-9. Verify the resident models.
-10. Verify the dashboard.
-11. Verify the worker and watchdog.
-12. Fix any mismatch between docs and runtime.
-13. Keep the system awake and automatic.
-14. Commit and push.
-
-## Definition of success
+## Definition of Success
 
 - One repository is the source of truth: `amanoba_courses`
-- The Mac mini has one installed menubar bundle only
+- One menubar bundle exists on the machine
 - The menubar matches the repo
 - The dashboard matches the runtime
 - The resident models are warm
@@ -227,4 +228,3 @@ git push origin main
 - The watchdog repairs stalls
 - `.env.local` is recreated from Vercel when needed
 - The final commit is pushed to `origin/main`
-
