@@ -1,6 +1,17 @@
 # Amanoba Menubar User Guide
 
-This guide explains what you can do from the macOS menu bar app (`AmanobaMenubar`) for `Amanoba v0.2.0`.
+This guide explains what you can do from the macOS menu bar app (`AmanobaMenubar`).
+
+Current build version:
+
+- `Amanoba v0.2.0`
+
+## Status and SSOT
+
+- **Status:** current user guide
+- **Document owner:** Amanoba maintainers
+- **Runtime SSOT:** `docs/current-ssot.md`
+- **Conflict rule:** if the menubar changes, update this guide to match the rebuilt app before using it as user-facing documentation
 
 ## Install
 
@@ -21,14 +32,26 @@ One-command install and run:
 bash tools/macos/AmanobaMenubar/run_AmanobaMenubar.sh
 ```
 
-If the installed menubar looks stale or different from the repo source, run the installer again from the current checkout. The installer now quits any running copy and replaces the bundle before rebuilding.
+Resource and dependency check:
+
+```bash
+bash tools/macos/AmanobaMenubar/check_AmanobaMenubar_resources.sh
+```
+
+If the installed menubar looks stale or different from the repo source, run the installer again from the current checkout. The installer quits any running copy and replaces the bundle before rebuilding.
 
 ## What You See
 
 - `Amanoba v0.2.0`
-- `Health: dashboard up|down`
+- `Health: dashboard up | worker idle|working|stalled`
 - `Power: gentle|balanced|fast`
 - `Jobs: pending | running | done | failed`
+- a compact `Model Roster` in the dashboard with five live entries:
+  - `DRAFTER`
+  - `WRITER`
+  - `JUDGE`
+  - `mlx`
+  - `ollama`
 
 The menu-bar title uses simple color states:
 
@@ -39,32 +62,31 @@ The menu-bar title uses simple color states:
 ## Daily Actions
 
 - `Open Dashboard`
-- `Scan Now`
-- `Refresh Now`
+- `Restart Services`
+- `Shutdown Services`
+- `Quit`
 
-The menubar is a small operator surface. It opens the dashboard, triggers a fresh scan, refreshes the status snapshot, switches power modes, restarts services, and opens logs.
+`Open Dashboard` opens the browserview control center. The current UI shows the `Course Creator` and `Quality Control` pages and the live queue.
 
-## Power Control
+`Restart Services` bootstraps the worker, dashboard, watchdog, and Ollama launch agents again.
 
-- `Gentle Mode`
-- `Balanced Mode`
-- `Fast Mode`
+`Shutdown Services` boots those launch agents out of `gui/$UID`.
 
-These actions call the dashboard power-mode API and persist the chosen mode to `course_quality_daemon.json`.
+`Quit` closes the menubar app after requesting service shutdown.
 
 ## Operations
-
-- `Restart Services`
-- `Install/Refresh Services`
-- `Open Logs Folder`
-
-The underlying background model is:
 
 - one long-lived QC worker daemon
 - one dashboard service
 - one watchdog service
 - one launch-managed `caffeinate` service
-- MLX/Apertus as the primary writer, with Ollama used only as fallback when MLX is unavailable
+- resident MLX creator roles for:
+  - drafter on `8080`
+  - writer on `8081`
+  - judge on `8082`
+- Ollama fallback with `keep_alive`
+- launch agents wrapped in `caffeinate -dimsu`
+- menubar title uses only short role labels, not model paths
 
 ## Auto-Launch
 

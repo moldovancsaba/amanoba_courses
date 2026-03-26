@@ -60,6 +60,7 @@ bash tools/macos/AmanobaMenubar/run_AmanobaMenubar.sh
 Menu app guide:
 
 - [`docs/menubar-user-guide.md`](docs/menubar-user-guide.md)
+- resource check: `bash tools/macos/AmanobaMenubar/check_AmanobaMenubar_resources.sh`
 
 User manual:
 
