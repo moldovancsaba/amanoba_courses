@@ -32,6 +32,8 @@ One-command install and run:
 bash tools/macos/AmanobaMenubar/run_AmanobaMenubar.sh
 ```
 
+If the installed menubar looks stale or different from the repo source, run the installer again from the current checkout. The installer now quits any running copy and replaces the bundle before rebuilding.
+
 ## What You See
 
 - `Amanoba v0.2.0`

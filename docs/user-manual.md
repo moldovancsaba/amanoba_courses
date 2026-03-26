@@ -126,6 +126,10 @@ Then:
 3. Start the dashboard, worker, and watchdog.
 4. Confirm the resident roles are up on `8080`, `8081`, and `8082`.
 
+## Menubar reset if it looks different
+
+If the menubar on a machine does not match the repo, reinstall it from the current checkout. The installer now quits the running copy and removes the old app bundle before rebuilding, so the new bundle replaces stale UI state instead of layering on top of it.
+
 ## Short version
 
 - Use the menubar for quick status.

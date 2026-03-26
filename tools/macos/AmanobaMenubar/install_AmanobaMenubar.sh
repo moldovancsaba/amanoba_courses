@@ -9,6 +9,12 @@ RES_DIR="$APP_DIR/Contents/Resources"
 TMP_SWIFT="/tmp/${APP_NAME}.swift"
 APP_VERSION="0.2.0"
 
+if pgrep -f "${APP_DIR}/Contents/MacOS/${APP_NAME}" >/dev/null 2>&1; then
+  pkill -f "${APP_DIR}/Contents/MacOS/${APP_NAME}" >/dev/null 2>&1 || true
+fi
+osascript -e "tell application \"${APP_NAME}\" to quit" >/dev/null 2>&1 || true
+rm -rf "$APP_DIR"
+
 mkdir -p "$BIN_DIR" "$RES_DIR"
 
 sed \
