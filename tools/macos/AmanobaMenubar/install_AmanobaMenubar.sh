@@ -15,6 +15,11 @@ fi
 osascript -e "tell application \"${APP_NAME}\" to quit" >/dev/null 2>&1 || true
 rm -rf "$APP_DIR"
 
+# Keep only the current Amanoba menubar bundle; remove known legacy copies.
+for legacy in "$HOME/Applications/HatoriMenubar.app" "$HOME/Applications/OpenClawMenubar.app" "$HOME/Applications/ReplyMenubar.app"; do
+  rm -rf "$legacy"
+done
+
 mkdir -p "$BIN_DIR" "$RES_DIR"
 
 sed \
