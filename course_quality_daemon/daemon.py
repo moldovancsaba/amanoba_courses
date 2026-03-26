@@ -28,7 +28,7 @@ from typing import Any
 
 from .confidence import confidence_for_completion, confidence_for_validation
 from .local_runtime import LocalRuntimeManager
-from .portable_paths import resolve_portable_path
+from .portable_paths import resolve_mlx_model_path, resolve_portable_path
 from .validator import _language_purity_errors, audit_lesson, validate_question
 
 
@@ -2995,7 +2995,7 @@ class CourseQualityDaemon:
             return False, ""
         provider_name = str(provider or "").strip().lower()
         if provider_name == "mlx":
-            path = resolve_portable_path(normalized, base_dir=self.config.workspace_root)
+            path = resolve_mlx_model_path(normalized, base_dir=self.config.workspace_root, label=normalized)
             if path.exists():
                 return True, str(path)
             return False, str(path)
@@ -4271,8 +4271,23 @@ class CourseQualityDaemon:
             "## Learning Goal",
             f"Use this lesson to build a practical first version of {safe_deliverable}. By the end, you should be able to {goal_sentence} in one realistic situation.",
             "",
+            "## Who",
+            "This lesson is for a beginner operator who needs one clear, usable result instead of a broad theoretical overview.",
+            "",
+            "## What",
+            f"You will create {safe_deliverable} and use it to support one concrete business need.",
+            "",
+            "## Where",
+            "Use this in the real environment where the work will be reviewed, shared, or handed to another person.",
+            "",
+            "## When",
+            "Work on this lesson when you have one concrete use case in front of you and can keep the first version intentionally small.",
+            "",
             "## Why It Matters",
             f"A beginner-friendly starting point matters because {safe_title} becomes useful only when one specific business problem is turned into one usable {domain_noun} that supports a real {decision_noun}.",
+            "",
+            "## How",
+            f"Start with one audience, one decision, and one narrowly scoped outcome. Build the smallest version of {safe_deliverable} that would still be useful in practice, then improve only after that first version works.",
             "",
             "## Example",
             f"Imagine you need one working version of {safe_deliverable}. The strongest first move is to choose one audience, one decision, and one narrowly scoped outcome instead of trying to solve the whole problem at once.",
@@ -4318,24 +4333,30 @@ class CourseQualityDaemon:
         question_uuid: str,
     ) -> dict[str, Any]:
         lesson_title = str(row.get("lesson_title") or "").strip() or "Lesson"
-        deliverable = str(row.get("deliverable") or "").strip() or "a usable first deliverable"
+        deliverable = str(row.get("deliverable") or "").strip() or lesson_title.lower()
         focus = str(row.get("quiz_focus") or "").strip()
+        focus_sentence = re.sub(r"\s+", " ", focus).strip().rstrip(".")
+        if not focus_sentence:
+            focus_sentence = f"make {deliverable} useful in one real situation"
         question = (
-            f"You are working on {deliverable} for {lesson_title}. Which action is the best next move "
-            "if you want the work to stay useful, focused, and realistic for a beginner?"
+            f"A beginner is building {deliverable} for {lesson_title}. They need a first version they can use in a real situation this week. "
+            f"Which next step is strongest if the goal is to {focus_sentence[:1].lower() + focus_sentence[1:] if focus_sentence else focus_sentence}?"
         )
         correct = (
-            "Choose one real use case, define the audience and the decision they need to make, "
-            f"then build the smallest useful version of {deliverable}."
+            f"Choose one real buyer problem first. Define the decision {deliverable} must support. Build the smallest version that can be reviewed today."
         )
         options = [
             correct,
-            f"Start by collecting every possible requirement and making {deliverable} broad enough to cover everything at once.",
-            "Copy a generic template first and postpone the real user decision until later.",
-            "Spend most of the time polishing presentation details before confirming the practical goal.",
+            f"Expand {deliverable} to cover multiple audiences first. Delay testing until it tries to solve every use case at once.",
+            f"Copy another example into {deliverable} first. Postpone the real buyer problem until after the first draft is finished.",
+            f"Polish the presentation of {deliverable} first. Delay the hard decision about audience scope and outcome.",
         ]
         if "metric" in focus.lower():
-            options[3] = "Pick attractive presentation details first and postpone metric definitions until after the first version is already built."
+            options[3] = f"Choose attractive visuals for {deliverable} first. Postpone metric definitions until after the first version is already built."
+        elif "pricing" in focus.lower() or "offer" in focus.lower():
+            options[2] = f"Copy another agency's pricing or offer structure into {deliverable}. Check the buyer problem only after the first draft exists."
+        elif "client" in focus.lower() or "buyer" in focus.lower():
+            options[1] = f"Keep {deliverable} broad enough to serve every possible client. Avoid choosing one buyer problem first."
         return {
             "uuid": question_uuid,
             "question": question,
@@ -5262,6 +5283,7 @@ class CourseQualityDaemon:
             entries.append(
                 f"### Day {day:02d} Quiz Draft\n"
                 f"- Lesson title: {lesson_title}\n"
+                f"- Deliverable: {deliverable}\n"
                 f"- Quiz focus: {quiz_focus}\n"
                 f"- Batch target: 7 application-first questions\n"
             )
@@ -5456,6 +5478,7 @@ class CourseQualityDaemon:
         day_pattern = re.compile(
             r"### Day (?P<day>\d{2}) Quiz Draft\n"
             r"- Lesson title: (?P<lesson_title>.+?)\n"
+            r"- Deliverable: (?P<deliverable>.+?)\n"
             r"- Quiz focus: (?P<quiz_focus>.+?)\n"
             r"- Batch target: (?P<batch_target>.+?)\n"
             r"(?P<body>.*?)(?=\n### Day |\Z)",

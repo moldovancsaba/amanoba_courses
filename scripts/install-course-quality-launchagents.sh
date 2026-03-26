@@ -1,11 +1,18 @@
 #!/bin/bash
 set -euo pipefail
-ROOT="${AMANOBA_COURSES_ROOT:-/Users/chappie/Projects/amanoba_courses}"
+ROOT="${AMANOBA_COURSES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 CONFIG_PATH="${AMANOBA_CONFIG_PATH:-$ROOT/course_quality_daemon.json}"
 LAUNCH_DIR="$HOME/Library/LaunchAgents"
 LOG_DIR="$ROOT/.course-quality/launchd"
 mkdir -p "$LAUNCH_DIR" "$LOG_DIR"
-PYTHON_USER_SITE="$(python3 - <<'PY'
+VENV_PYTHON="$ROOT/.venv-mlx/bin/python"
+if [[ ! -x "$VENV_PYTHON" ]]; then
+  VENV_PYTHON="$(command -v python3 || true)"
+fi
+if [[ -z "$VENV_PYTHON" || ! -x "$VENV_PYTHON" ]]; then
+  VENV_PYTHON="/usr/bin/python3"
+fi
+PYTHON_USER_SITE="$("$VENV_PYTHON" - <<'PY'
 import site
 print(site.getusersitepackages())
 PY
@@ -58,7 +65,7 @@ cat > "$WORKER_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
-<key>AMANOBA_PYTHON_BIN</key><string>/usr/bin/python3</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$VENV_PYTHON</string>
 <key>PYTHONPATH</key><string>$PYTHON_USER_SITE</string>
 <key>HOME</key><string>$HOME</string>
 <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
@@ -78,7 +85,7 @@ cat > "$DASHBOARD_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
-<key>AMANOBA_PYTHON_BIN</key><string>/usr/bin/python3</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$VENV_PYTHON</string>
 <key>PYTHONPATH</key><string>$PYTHON_USER_SITE</string>
 <key>HOME</key><string>$HOME</string>
 <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
@@ -98,7 +105,7 @@ cat > "$WATCHDOG_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
-<key>AMANOBA_PYTHON_BIN</key><string>/usr/bin/python3</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$VENV_PYTHON</string>
 <key>PYTHONPATH</key><string>$PYTHON_USER_SITE</string>
 <key>HOME</key><string>$HOME</string>
 <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
@@ -131,7 +138,7 @@ cat > "$DRAFTER_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
-<key>AMANOBA_PYTHON_BIN</key><string>/usr/bin/python3</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$VENV_PYTHON</string>
 <key>AMANOBA_RESIDENT_ROLE</key><string>DRAFTER</string>
 <key>PYTHONPATH</key><string>$PYTHON_USER_SITE</string>
 <key>HOME</key><string>$HOME</string>
@@ -152,7 +159,7 @@ cat > "$WRITER_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
-<key>AMANOBA_PYTHON_BIN</key><string>/usr/bin/python3</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$VENV_PYTHON</string>
 <key>AMANOBA_RESIDENT_ROLE</key><string>WRITER</string>
 <key>PYTHONPATH</key><string>$PYTHON_USER_SITE</string>
 <key>HOME</key><string>$HOME</string>
@@ -173,7 +180,7 @@ cat > "$JUDGE_PLIST" <<PLIST
 <key>WorkingDirectory</key><string>$ROOT</string>
 <key>EnvironmentVariables</key><dict>
 <key>AMANOBA_COURSES_ROOT</key><string>$ROOT</string>
-<key>AMANOBA_PYTHON_BIN</key><string>/usr/bin/python3</string>
+<key>AMANOBA_PYTHON_BIN</key><string>$VENV_PYTHON</string>
 <key>AMANOBA_RESIDENT_ROLE</key><string>JUDGE</string>
 <key>PYTHONPATH</key><string>$PYTHON_USER_SITE</string>
 <key>HOME</key><string>$HOME</string>

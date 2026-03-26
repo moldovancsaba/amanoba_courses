@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from mlx_lm import generate, load
-from .portable_paths import resolve_portable_path
+from .portable_paths import resolve_mlx_model_path, resolve_portable_path
 
 
 DEFAULT_ROLE_MODELS = {
@@ -234,7 +234,11 @@ def _load_config(config_path: Path, role: str) -> ResidentRoleConfig:
     defaults = dict(DEFAULT_ROLE_MODELS.get(role_upper) or {})
     host = str(selected.get("host") or "127.0.0.1").strip()
     port = int(selected.get("port") or defaults.get("port") or 0)
-    model_path = resolve_portable_path(str(selected.get("model") or defaults.get("path") or ""), base_dir=config_path.parent)
+    model_path = resolve_mlx_model_path(
+        str(selected.get("model") or defaults.get("path") or ""),
+        base_dir=config_path.parent,
+        label=str(selected.get("model_label") or defaults.get("label") or role_upper),
+    )
     return ResidentRoleConfig(
         role=role_upper,
         host=host,

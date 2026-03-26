@@ -122,7 +122,7 @@ If the dashboard API is down, the menubar clears the resident role rows instead 
 
 - install or refresh launch agents with `bash scripts/install-course-quality-launchagents.sh`
 - bootstrap the live Amanoba app with:
-  - `cd /Users/chappie/Projects/amanoba`
+  - `cd <USER_HOME>/Projects/amanoba`
   - `vercel login`
   - `vercel link --yes --scope narimato --project amanoba`
   - `vercel env ls`
@@ -134,8 +134,8 @@ If the dashboard API is down, the menubar clears the resident role rows instead 
 ## Dependency Faults
 
 - if the live Amanoba bridge cannot run, the worker heartbeat should show `waiting-dependency`
-- `/Users/chappie/Projects/amanoba/.env.local` must include `MONGODB_URI` and `DB_NAME="amanoba"`
-- if `MONGODB_URI` is missing in `/Users/chappie/Projects/amanoba/.env.local`, the worker is not live-configured yet
+- `<USER_HOME>/Projects/amanoba/.env.local` must include `MONGODB_URI` and `DB_NAME="amanoba"`
+- if `MONGODB_URI` is missing in `<USER_HOME>/Projects/amanoba/.env.local`, the worker is not live-configured yet
 - the dashboard and watchdog should remain up even when the queue cannot advance
 
 ## What to Do If Work Looks Stuck
@@ -159,7 +159,7 @@ If you are installing the QC system on a new machine, recreate the local env fil
 
 Required live app file:
 
-- `/Users/chappie/Projects/amanoba/.env.local`
+- `<USER_HOME>/Projects/amanoba/.env.local`
 
 Minimum required values:
 
@@ -170,7 +170,7 @@ Minimum required values:
 Bootstrap commands:
 
 ```bash
-cd /Users/chappie/Projects/amanoba
+cd <USER_HOME>/Projects/amanoba
 vercel login
 vercel link --yes --scope narimato --project amanoba
 vercel env ls
@@ -180,10 +180,10 @@ npm install
 
 Then:
 
-1. Verify `/Users/chappie/Projects/amanoba/.env.local` contains `MONGODB_URI` and `DB_NAME`.
+1. Verify `<USER_HOME>/Projects/amanoba/.env.local` contains `MONGODB_URI` and `DB_NAME`.
 2. Install or refresh the launch agents.
 3. Start the dashboard, worker, and watchdog.
-4. Confirm `/Users/chappie/Projects/amanoba/node_modules/.bin/tsx` exists.
+4. Confirm `<USER_HOME>/Projects/amanoba/node_modules/.bin/tsx` exists.
 5. Confirm the resident roles are up on `8080`, `8081`, and `8082`.
 
 ## Menubar Reset If It Looks Different
