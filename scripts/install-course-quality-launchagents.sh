@@ -205,6 +205,9 @@ fi
 for label in com.amanoba.coursequality.worker com.amanoba.coursequality.dashboard com.amanoba.coursequality.watchdog com.amanoba.coursequality.ollama com.amanoba.coursequality.caffeinate com.amanoba.coursequality.role.drafter com.amanoba.coursequality.role.writer com.amanoba.coursequality.role.judge; do
   launchctl bootout "gui/$UID/$label" >/dev/null 2>&1 || true
 done
+# launchctl bootout returns before role sockets are always fully released.
+# Give the resident ports a brief cooldown so the next bootstrap does not race the old process.
+sleep 2
 launchctl bootstrap "gui/$UID" "$CAFFEINATE_PLIST"
 [[ -f "$OLLAMA_PLIST" ]] && launchctl bootstrap "gui/$UID" "$OLLAMA_PLIST" >/dev/null 2>&1 || true
 launchctl bootstrap "gui/$UID" "$DRAFTER_PLIST"

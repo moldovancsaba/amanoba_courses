@@ -2995,7 +2995,7 @@ class CourseQualityDaemon:
             return False, ""
         provider_name = str(provider or "").strip().lower()
         if provider_name == "mlx":
-            path = Path(normalized)
+            path = resolve_portable_path(normalized, base_dir=self.config.workspace_root)
             if path.exists():
                 return True, str(path)
             return False, str(path)
