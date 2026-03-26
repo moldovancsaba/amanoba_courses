@@ -57,7 +57,9 @@ The menu-bar title uses simple color states:
 
 - `🟢 AQ` when QC work is running
 - `⚪ AQ` when the dashboard is healthy and no card is running
-- `🔴 AQ` when the dashboard health check fails
+- `🔴 AQ` when the dashboard health check fails and the worker heartbeat is not reachable
+
+If the main dashboard check fails but the worker heartbeat is still reachable through `/api/healthz`, the menubar now shows the worker state while resetting the resident role rows to unknown instead of keeping stale green status on screen.
 
 ## Daily Actions
 

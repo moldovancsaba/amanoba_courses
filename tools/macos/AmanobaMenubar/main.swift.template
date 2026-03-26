@@ -30,6 +30,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
     private let judgeItem = NSMenuItem(title: "JUDGE", action: nil, keyEquivalent: "")
     private let repoRoot = "__REPO_ROOT__"
     private let dashboardURL = "http://127.0.0.1:8765"
+    private let healthzURL = "http://127.0.0.1:8765/api/healthz"
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -88,10 +89,7 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
                     let data = data,
                     let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
                 else {
-                    self.healthItem.title = "Health: dashboard down"
-                    self.powerItem.title = "Power: unknown"
-                    self.jobsItem.title = "Jobs: unknown"
-                    self.statusItem.button?.title = IndicatorState.error.title
+                    self.refreshDegradedHealth()
                     return
                 }
 
@@ -115,6 +113,43 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
             }
         }
         task.resume()
+    }
+
+    private func refreshDegradedHealth() {
+        guard let url = URL(string: healthzURL) else { return }
+        let task = URLSession.shared.dataTask(with: url) { data, response, _ in
+            DispatchQueue.main.async {
+                if
+                    let http = response as? HTTPURLResponse,
+                    http.statusCode == 200,
+                    let data = data,
+                    let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                    let worker = obj["worker"] as? [String: Any]
+                {
+                    let phase = (worker["phase"] as? String) ?? "unknown"
+                    let state = phase.lowercased()
+                    self.healthItem.title = "Health: dashboard down | worker \(state)"
+                    self.powerItem.title = "Power: unknown"
+                    self.jobsItem.title = "Jobs: unknown"
+                    self.statusItem.button?.title = (state == "running" || state == "processing" || state == "working")
+                        ? IndicatorState.working.title
+                        : IndicatorState.error.title
+                } else {
+                    self.healthItem.title = "Health: dashboard down"
+                    self.powerItem.title = "Power: unknown"
+                    self.jobsItem.title = "Jobs: unknown"
+                    self.statusItem.button?.title = IndicatorState.error.title
+                }
+                self.clearResidentRoleItems()
+            }
+        }
+        task.resume()
+    }
+
+    private func clearResidentRoleItems() {
+        self.drafterItem.title = self.roleLine(label: "DRAFTER", role: [:])
+        self.writerItem.title = self.roleLine(label: "WRITER", role: [:])
+        self.judgeItem.title = self.roleLine(label: "JUDGE", role: [:])
     }
 
     @objc private func openDashboard() {

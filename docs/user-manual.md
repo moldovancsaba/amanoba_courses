@@ -101,6 +101,8 @@ The dashboard shows one compact `Model Roster` row with five live entries:
 
 The menubar keeps the rows short, but it does show the model names so operators can identify the resident roles at a glance. The interface does not show long filesystem paths in the menubar.
 
+If the dashboard API is down, the menubar clears the resident role rows instead of preserving the previous green state.
+
 ## Typical Workflow
 
 1. Open the menubar app.
@@ -114,7 +116,7 @@ The menubar keeps the rows short, but it does show the model names so operators 
 - `🟢 AQ` means work is running.
 - `⚪ AQ` means the dashboard is healthy and no card is currently running.
 - `🟠 AQ` means the worker is stalled and should be repaired.
-- `🔴 AQ` means the health check failed.
+- `🔴 AQ` means the dashboard health check failed and the worker heartbeat is unavailable.
 
 ## Always-On Rules
 
