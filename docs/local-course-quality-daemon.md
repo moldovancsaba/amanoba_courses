@@ -2,7 +2,7 @@
 
 This tool gives you a local, continuous worker that:
 
-- reads the live Amanoba MongoDB-backed app through the bridge in `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`,
+- reads the live Amanoba MongoDB-backed app through the bridge in the live app workspace under the current user home directory,
 - detects weak lessons and invalid quiz questions,
 - queues each fix as a separate task,
 - processes exactly one task at a time,
@@ -42,7 +42,11 @@ That means:
 
 - local MLX/Apertus is the primary unattended writer path,
 - Ollama is used only as fallback when MLX is unavailable or temporarily cooled down after repeated runtime failures,
-- MLX runs through the interpreter configured in `course_quality_daemon.json` and currently resolves to `/usr/bin/python3`,
+- MLX runs through the dedicated [`.venv-mlx/bin/python`](../.venv-mlx/bin/python) interpreter,
+- the resident creator roles stay online as separate MLX servers and are shown in the dashboard as a single compact model roster:
+  - drafter on `127.0.0.1:8080`
+  - writer on `127.0.0.1:8081`
+  - judge on `127.0.0.1:8082`
 - the watchdog enforces MLX as the primary writer and treats fallback mode as a repairable incident,
 - Ollama model-level timeout fallback is still used when the Ollama primary/fallback chain is active,
 - Ollama runs with a low-power profile by default when it is used as fallback (`temperature 0.1`, `num_predict 384`, `num_ctx 2048`, `num_thread 2`),
@@ -65,11 +69,11 @@ Each role exposes `/health`, `/generate`, and `/v1/chat/completions`.
 
 ## Fresh Machine Bootstrap
 
-The live Amanoba app at `/Users/chappie/Projects/amanoba` is linked to Vercel project `narimato/amanoba`.
+The live Amanoba app is linked to Vercel project `narimato/amanoba` in the live app workspace under the current user home directory.
 
 Fresh-machine bootstrap order:
 
-1. `cd /Users/chappie/Projects/amanoba`
+1. `cd <USER_HOME>/Projects/amanoba`
 2. `vercel login`
 3. `vercel link --yes --scope narimato --project amanoba`
 4. `vercel env ls`
@@ -108,8 +112,7 @@ Canonical references:
 
 - `docs/amanoba-course-content-standard-v1-0.md`
 - `docs/course-package-format.md`
-- `/Users/chappie/Projects/amanoba/app/lib/lesson-content.ts`
-- `/Users/chappie/Projects/amanoba/app/lib/models/lesson.ts`
+- the live Amanoba app workspace under the current user home directory
 
 ## Dashboard
 
@@ -274,9 +277,9 @@ The worker is also started with `nice -n 10` so it runs continuously at lower sc
 
 Live bridge dependency note:
 
-- the worker bridge is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
-- `tsx --env-file=.env.local` requires `/Users/chappie/Projects/amanoba/.env.local` to exist
-- `tsx --env-file=.env.local` also requires `/Users/chappie/Projects/amanoba/node_modules/.bin/tsx` from `npm install`
+- the worker bridge lives in the live Amanoba app workspace under the current user home directory
+- `tsx --env-file=.env.local` requires `"$HOME/Projects/amanoba/.env.local"` to exist
+- `tsx --env-file=.env.local` also requires `"$HOME/Projects/amanoba/node_modules/.bin/tsx"` from `npm install`
 - actual live queue processing still requires a valid `MONGODB_URI`
 
 ## Watchdog
@@ -326,7 +329,7 @@ Watchdog logs:
 To launch the app the same way as `{hatori}` or `{reply}`, use either root-level launcher:
 
 ```bash
-cd /Users/chappie/Projects/amanoba_courses
+cd "$HOME/Projects/amanoba_courses"
 ./start_amanoba.command
 ```
 
@@ -340,7 +343,7 @@ These launchers refresh the background services, wait for dashboard health, and 
 ## Quick start
 
 ```bash
-cd /Users/chappie/Projects/amanoba_courses
+cd "$HOME/Projects/amanoba_courses"
 cp course_quality_daemon.example.json course_quality_daemon.json
 python3 -m course_quality_daemon --config course_quality_daemon.json scan
 python3 -m course_quality_daemon --config course_quality_daemon.json health
@@ -353,7 +356,7 @@ python3 -m course_quality_daemon --config course_quality_daemon.json dashboard
 The default config in this repo is now live-DB mode:
 
 - `source_mode: amanoba_live_db`
-- `live.app_root: /Users/chappie/Projects/amanoba`
+- `live.app_root: <USER_HOME>/Projects/amanoba`
 - `live.bridge_script: scripts/course-quality-live-bridge.ts`
 - `live.bridge_timeout_seconds: 120`
 
@@ -399,7 +402,7 @@ GitHub issue planning source of truth is separate:
 
 ## Recommended rollout
 
-- Make sure the configured MLX interpreter can import `mlx`, the configured Apertus snapshot exists on disk, and `ollama` has its fallback models pulled.
+- Make sure MLX/Apertus is installed in [`.venv-mlx`](../.venv-mlx) and `ollama` has its fallback models pulled.
 - Run the dashboard and inspect a few real rewritten outputs while MLX is selected as the writer.
 - When the outputs are stable, install the launch agents and leave the system running in the background.
 - Keep `idle_sleep_seconds` and `post_task_sleep_seconds` non-zero so the worker remains gentle on the machine.

@@ -28,6 +28,7 @@ from typing import Any
 
 from .confidence import confidence_for_completion, confidence_for_validation
 from .local_runtime import LocalRuntimeManager
+from .portable_paths import resolve_portable_path
 from .validator import _language_purity_errors, audit_lesson, validate_question
 
 
@@ -204,6 +205,11 @@ def _looks_like_repairable_content_error(message: str) -> bool:
     )
 
 
+def _creator_has_leakage(text: str) -> bool:
+    lowered = str(text or "").strip().lower()
+    return any(pattern in lowered for pattern in CREATOR_LEAK_PATTERNS)
+
+
 DEFAULT_CREATOR_PIPELINE = {
     "drafter": {
         "tool": "MLX-LM",
@@ -230,6 +236,17 @@ DEFAULT_CREATOR_PIPELINE = {
         "description": "Checks structure, language, and quality gates before acceptance.",
     },
 }
+
+CREATOR_LEAK_PATTERNS = (
+    "localized lesson title",
+    "localized subject line",
+    "the best answer should",
+    "distractors should",
+    "generic action.",
+    "incomplete delivery.",
+    "focus ",
+    "### what learners will be able to do",
+)
 
 
 LESSON_LANGUAGE_PACKS: dict[str, dict[str, str]] = {
@@ -562,8 +579,7 @@ class Config:
         root = path.parent.resolve()
 
         def resolve(value: str) -> Path:
-            candidate = Path(value)
-            return candidate if candidate.is_absolute() else (root / candidate).resolve()
+            return resolve_portable_path(value, base_dir=root)
 
         return cls(
             config_path=path.resolve(),
@@ -4172,6 +4188,168 @@ class CourseQualityDaemon:
             "generatedAt": utc_now(),
         }
 
+    def _creator_public_course_title(self, topic: str) -> str:
+        text = re.sub(r"\s+", " ", str(topic or "").strip()).strip(" ,.-")
+        if not text:
+            return "Untitled course"
+        match = re.match(r"^(?P<subject>.+?)\s+for\s+beginners,\s*how\s+to\s+(?P<action>.+)$", text, flags=re.I)
+        if match:
+            subject = match.group("subject").strip()
+            action = match.group("action").strip().rstrip(".")
+            return f"{subject} for Beginners: How to {action[:1].lower() + action[1:] if action else action}"
+        return text
+
+    def _creator_public_course_description(
+        self,
+        topic: str,
+        research_sections: dict[str, list[str]],
+        blueprint_rows: list[dict[str, str]],
+    ) -> str:
+        outcomes = [item.strip() for item in (research_sections.get("Outcome Hypotheses") or []) if item.strip()]
+        if outcomes:
+            first = outcomes[0]
+            if not _creator_has_leakage(first):
+                return first
+        if blueprint_rows:
+            first = blueprint_rows[0]
+            deliverable = str(first.get("deliverable") or "").strip()
+            title = str(first.get("title") or "").strip()
+            if deliverable and title:
+                return f"Learn {title} through practical exercises and build {deliverable} as your first concrete output."
+        title = self._creator_public_course_title(topic)
+        return f"A practical Amanoba course to build real skill in {title} through guided lessons, application-focused quizzes, and measurable outputs."
+
+    def _creator_public_lesson_title(self, lesson_title: str, fallback: str) -> str:
+        candidate = str(lesson_title or "").strip()
+        if not candidate or _creator_has_leakage(candidate):
+            return str(fallback or "Lesson").strip()
+        return candidate
+
+    def _creator_strip_optional_empty_sections(self, text: str) -> str:
+        cleaned = str(text or "")
+        cleaned = re.sub(
+            r"\n## Bibliography \(sources used\)\s*(?:\n(?:\.\.\.|[-*]\s*)\s*)*(?=\n## |\Z)",
+            "\n",
+            cleaned,
+            flags=re.DOTALL,
+        )
+        cleaned = re.sub(
+            r"\n## Read more \(optional\)\s*(?:\n(?:\.\.\.|[-*]\s*)\s*)*(?=\n## |\Z)",
+            "\n",
+            cleaned,
+            flags=re.DOTALL,
+        )
+        return re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+
+    def _creator_render_public_lesson_content(
+        self,
+        title: str,
+        goal: str,
+        deliverable: str,
+        lesson_title: str,
+        source_rows: list[dict[str, str]],
+    ) -> str:
+        safe_goal = str(goal or "").strip().rstrip(".")
+        safe_title = str(title or lesson_title or "Lesson").strip()
+        safe_deliverable = str(deliverable or "a concrete output").strip()
+        title_context = safe_title.lower()
+        domain_noun = "project"
+        decision_noun = "decision"
+        if re.search(r"\bagency\b", title_context, flags=re.I):
+            domain_noun = "service offer"
+            decision_noun = "client-facing decision"
+        elif re.search(r"\bpower bi\b|\bdashboard\b|\breport", title_context, flags=re.I):
+            domain_noun = "dashboard"
+            decision_noun = "reporting decision"
+        elif re.search(r"\bsales\b|\bclosing\b|\bproposal\b", title_context, flags=re.I):
+            domain_noun = "sales asset"
+            decision_noun = "buyer decision"
+        goal_sentence = safe_goal or f"produce {safe_deliverable}"
+        lines = [
+            f"# {safe_title}",
+            "",
+            "## Learning Goal",
+            f"Use this lesson to build a practical first version of {safe_deliverable}. By the end, you should be able to {goal_sentence} in one realistic situation.",
+            "",
+            "## Why It Matters",
+            f"A beginner-friendly starting point matters because {safe_title} becomes useful only when one specific business problem is turned into one usable {domain_noun} that supports a real {decision_noun}.",
+            "",
+            "## Example",
+            f"Imagine you need one working version of {safe_deliverable}. The strongest first move is to choose one audience, one decision, and one narrowly scoped outcome instead of trying to solve the whole problem at once.",
+            "",
+            "## Guided Exercise",
+            f"Choose one realistic beginner use case, define the audience, list the minimum inputs needed, and create the first usable version of {safe_deliverable}. Keep the scope intentionally small and practical.",
+            "",
+            "## Independent Exercise",
+            f"Adapt the same pattern to your own context. Replace the sample use case with a real need and create your own version of {safe_deliverable}.",
+            "",
+            "## Self-Check",
+            f"Check whether your draft is specific, useful, and clearly tied to one real decision. If a stakeholder saw it, would they understand what it is for and what action it supports?",
+        ]
+        if source_rows:
+            lines.extend(["", "## Bibliography (sources used)"])
+            for item in source_rows[:5]:
+                title_value = str(item.get("title") or "").strip()
+                url_value = str(item.get("url") or "").strip()
+                if title_value and url_value:
+                    lines.append(f"- [{title_value}]({url_value})")
+                elif title_value:
+                    lines.append(f"- {title_value}")
+                elif url_value:
+                    lines.append(f"- {url_value}")
+        return self._creator_strip_optional_empty_sections("\n".join(lines))
+
+    def _creator_render_public_email_subject(self, title: str, day: int) -> str:
+        safe_title = str(title or "Lesson").strip()
+        return f"Day {day:02d} — {safe_title}"
+
+    def _creator_render_public_email_body(self, title: str, deliverable: str) -> str:
+        safe_title = str(title or "Lesson").strip()
+        safe_deliverable = str(deliverable or "a usable output").strip()
+        return (
+            f"Today you will use {safe_title} to build {safe_deliverable}. "
+            "Keep the first version practical, small in scope, and ready for review."
+        )
+
+    def _creator_render_public_question_from_row(
+        self,
+        row: dict[str, str],
+        target_language: str,
+        question_uuid: str,
+    ) -> dict[str, Any]:
+        lesson_title = str(row.get("lesson_title") or "").strip() or "Lesson"
+        deliverable = str(row.get("deliverable") or "").strip() or "a usable first deliverable"
+        focus = str(row.get("quiz_focus") or "").strip()
+        question = (
+            f"You are working on {deliverable} for {lesson_title}. Which action is the best next move "
+            "if you want the work to stay useful, focused, and realistic for a beginner?"
+        )
+        correct = (
+            "Choose one real use case, define the audience and the decision they need to make, "
+            f"then build the smallest useful version of {deliverable}."
+        )
+        options = [
+            correct,
+            f"Start by collecting every possible requirement and making {deliverable} broad enough to cover everything at once.",
+            "Copy a generic template first and postpone the real user decision until later.",
+            "Spend most of the time polishing presentation details before confirming the practical goal.",
+        ]
+        if "metric" in focus.lower():
+            options[3] = "Pick attractive presentation details first and postpone metric definitions until after the first version is already built."
+        return {
+            "uuid": question_uuid,
+            "question": question,
+            "options": options,
+            "correctIndex": 0,
+            "questionType": "application",
+            "difficulty": "MEDIUM",
+            "category": "Course Specific",
+            "hashtags": [f"#{target_language}", "#creator-final", "#application"],
+            "isActive": True,
+            "language": target_language,
+            "lessonTitle": lesson_title,
+        }
+
     def _creator_validate_stage_artifact(self, stage_key: str, content: str) -> tuple[bool, str]:
         normalized = str(content or "").strip()
         if not normalized:
@@ -4529,6 +4707,7 @@ class CourseQualityDaemon:
         structured = self._creator_structured_artifacts(detail)
         lesson_rows = list((structured.get("lesson_generation") or {}).get("items") or [])
         quiz_rows = list((structured.get("quiz_generation") or {}).get("items") or [])
+        source_rows = list(payload.get("sourcePack") or [])
         if not lesson_rows:
             raise ValueError("Approved lesson generation artifact does not contain lesson drafts to inject into QC.")
         run_id = str(detail.get("runId") or "")
@@ -4566,6 +4745,8 @@ class CourseQualityDaemon:
                     "creatorStage": "qc_review",
                     "creatorDay": day,
                     "before": before,
+                    "lessonRow": row,
+                    "sourceRows": source_rows,
                     "context": context,
                     "displayTitle": str(before.get("title") or lesson_id),
                     "humanCourseName": topic,
@@ -4601,6 +4782,7 @@ class CourseQualityDaemon:
                     "creatorStage": "qc_review",
                     "creatorDay": day,
                     "before": before,
+                    "quizRow": row,
                     "displayTitle": str(before.get("question") or question_uuid),
                     "humanCourseName": topic,
                     "humanDayLabel": f"Day {int(day)}",
@@ -4643,18 +4825,42 @@ class CourseQualityDaemon:
             sections[heading] = rows
         return sections
 
+    def _creator_clean_public_rows(self, rows: list[str], topic: str, limit: int = 4) -> list[str]:
+        cleaned: list[str] = []
+        keywords = self._topic_keywords(topic)
+        for row in rows:
+            text = str(row or "").strip()
+            lowered = text.lower()
+            if not text or _creator_has_leakage(text):
+                continue
+            if text.startswith("### ") or text.endswith(":"):
+                continue
+            if "what specific" in lowered or "what decisions" in lowered or "what topics" in lowered:
+                continue
+            if keywords and not any(keyword in lowered for keyword in keywords):
+                generic_ok = any(
+                    phrase in lowered
+                    for phrase in ("learner", "dashboard", "report", "analysis", "data", "decision", "metric", "visual")
+                )
+                if not generic_ok:
+                    continue
+            cleaned.append(text)
+        return cleaned[:limit]
+
     def _creator_build_course_package(self, detail: dict[str, Any]) -> dict[str, Any]:
         payload = dict(detail.get("payload") or {})
         stage_artifacts = dict(payload.get("stageArtifacts") or {})
         qc_payload = dict(payload.get("qcPayload") or {})
         blueprint_rows = self._creator_parse_blueprint_days(str((stage_artifacts.get("blueprint") or {}).get("content") or ""))
         lesson_rows = self._creator_parse_lesson_batch_rows(str((stage_artifacts.get("lesson_generation") or {}).get("content") or ""))
+        quiz_rows = self._creator_parse_quiz_batch_rows(str((stage_artifacts.get("quiz_generation") or {}).get("content") or ""))
         lessons_by_key = dict(qc_payload.get("lessons") or {})
         questions_by_key = dict(qc_payload.get("questions") or {})
         if not blueprint_rows or not lesson_rows:
             raise ValueError("Blueprint and lesson generation artifacts must exist before building a draft package.")
         target_language = str(detail.get("targetLanguage") or "en").strip().lower()
         topic = str(detail.get("topic") or "Untitled course").strip()
+        public_title = self._creator_public_course_title(topic)
         course_id_base = self._creator_slug(topic)
         course_id = f"{course_id_base}_{target_language.upper()}"
         research_markdown = str((stage_artifacts.get("research") or {}).get("content") or "")
@@ -4667,16 +4873,12 @@ class CourseQualityDaemon:
         ]
         blueprint_map = {f"{int(row['day']):02d}": row for row in blueprint_rows if row.get("day")}
         lesson_map = {f"{int(row['day']):02d}": row for row in lesson_rows if row.get("day")}
-        questions_by_day: dict[str, list[dict[str, Any]]] = {}
-        for question in questions_by_key.values():
-            if not isinstance(question, dict):
-                continue
-            question_uuid = str(question.get("uuid") or "")
-            match = re.search(r"-d(?P<day>\d{2})-q\d+$", question_uuid)
-            day = match.group("day") if match else ""
+        quiz_rows_by_day: dict[str, list[dict[str, str]]] = {}
+        for row in quiz_rows:
+            day = f"{int(str(row.get('day') or '0') or '0'):02d}" if str(row.get("day") or "").strip().isdigit() else str(row.get("day") or "").strip()
             if not day:
                 continue
-            questions_by_day.setdefault(day, []).append(question)
+            quiz_rows_by_day.setdefault(day, []).append(row)
         package_lessons: list[dict[str, Any]] = []
         canonical_lessons: list[dict[str, Any]] = []
         for day in range(1, 31):
@@ -4684,11 +4886,51 @@ class CourseQualityDaemon:
             blueprint = blueprint_map.get(day_key) or {}
             lesson_row = lesson_map.get(day_key) or {}
             qc_lesson = lessons_by_key.get(f"day-{day_key}") or {}
-            lesson_title = str((qc_lesson or {}).get("title") or lesson_row.get("lesson_title") or blueprint.get("title") or f"{topic}: day {day_key}")
-            lesson_content = str((qc_lesson or {}).get("content") or lesson_row.get("lesson_body") or "")
-            email_subject = str((qc_lesson or {}).get("emailSubject") or lesson_row.get("email_subject") or lesson_title)
-            email_body = str((qc_lesson or {}).get("emailBody") or lesson_row.get("email_body") or "")
-            quiz_questions = list(questions_by_day.get(day_key) or [])
+            fallback_title = str(blueprint.get("title") or lesson_row.get("lesson_title") or f"Day {day_key}")
+            lesson_title = self._creator_public_lesson_title(str((qc_lesson or {}).get("title") or lesson_row.get("lesson_title") or blueprint.get("title") or fallback_title), fallback_title)
+            rendered_content = self._creator_render_public_lesson_content(
+                lesson_title,
+                str(blueprint.get("goal") or lesson_row.get("goal") or ""),
+                str(blueprint.get("deliverable") or lesson_row.get("deliverable") or ""),
+                str(lesson_row.get("lesson_title") or lesson_title),
+                source_rows,
+            )
+            rendered_email_subject = self._creator_render_public_email_subject(lesson_title, day)
+            rendered_email_body = self._creator_render_public_email_body(
+                lesson_title,
+                str(blueprint.get("deliverable") or lesson_row.get("deliverable") or ""),
+            )
+            qc_lesson_candidate = {
+                "title": str((qc_lesson or {}).get("title") or ""),
+                "content": str((qc_lesson or {}).get("content") or ""),
+                "emailSubject": str((qc_lesson or {}).get("emailSubject") or ""),
+                "emailBody": str((qc_lesson or {}).get("emailBody") or ""),
+            }
+            qc_lesson_audit = audit_lesson(qc_lesson_candidate, target_language) if any(qc_lesson_candidate.values()) else None
+            use_qc_lesson = bool(
+                qc_lesson_audit
+                and qc_lesson_audit.is_valid
+                and not any(_creator_has_leakage(value) for value in qc_lesson_candidate.values())
+            )
+            lesson_content = str(qc_lesson_candidate.get("content") or rendered_content) if use_qc_lesson else rendered_content
+            email_subject = str(qc_lesson_candidate.get("emailSubject") or rendered_email_subject) if use_qc_lesson else rendered_email_subject
+            email_body = str(qc_lesson_candidate.get("emailBody") or rendered_email_body) if use_qc_lesson else rendered_email_body
+            quiz_questions: list[dict[str, Any]] = []
+            for row in list(quiz_rows_by_day.get(day_key) or []):
+                question_number = str(row.get("question_number") or "0").strip()
+                question_uuid = f"{detail.get('runId')}-d{day_key}-q{question_number}"
+                qc_question = questions_by_key.get(question_uuid) or {}
+                qc_question_candidate = dict(qc_question) if isinstance(qc_question, dict) else {}
+                qc_question_audit = validate_question(qc_question_candidate, target_language) if qc_question_candidate else None
+                use_qc_question = bool(
+                    qc_question_audit
+                    and qc_question_audit.is_valid
+                    and not _creator_has_leakage(str(qc_question_candidate.get("question") or ""))
+                    and not any(_creator_has_leakage(str(option or "")) for option in list(qc_question_candidate.get("options") or []))
+                )
+                quiz_questions.append(
+                    qc_question_candidate if use_qc_question else self._creator_render_public_question_from_row(row, target_language, question_uuid)
+                )
             package_lessons.append(
                 {
                     "lessonId": f"{course_id}_DAY_{day_key}",
@@ -4725,19 +4967,34 @@ class CourseQualityDaemon:
                     "sources": source_rows[:5],
                 }
             )
-        publish_title = str(research_sections.get("Core Learner Problem", [topic])[0] if research_sections.get("Core Learner Problem") else topic)
-        description = " ".join((research_sections.get("Outcome Hypotheses") or [])[:2]).strip() or f"Draft sovereign course for {topic}."
+        publish_title = str(research_sections.get("Core Learner Problem", [public_title])[0] if research_sections.get("Core Learner Problem") else public_title)
+        if _creator_has_leakage(publish_title):
+            publish_title = public_title
+        description = self._creator_public_course_description(public_title, research_sections, blueprint_rows)
+        clean_audience = self._creator_clean_public_rows(list(research_sections.get("Primary Audience Hypotheses") or []), public_title, 3)
+        clean_outcomes = self._creator_clean_public_rows(list(research_sections.get("Outcome Hypotheses") or []), public_title, 4)
+        clean_scope = self._creator_clean_public_rows(list(research_sections.get("Scope Boundaries") or []), public_title, 3)
+        clean_non_goals = clean_scope[1:4] if len(clean_scope) > 1 else []
+        course_idea_summary = (
+            f"# {public_title}\n\n"
+            f"## Public Summary\n{description}\n\n"
+            "## Audience\n"
+            + ("\n".join(f"- {item}" for item in clean_audience) if clean_audience else "- Beginner learners who need practical results quickly.")
+            + "\n\n## Outcomes\n"
+            + ("\n".join(f"- {item}" for item in clean_outcomes) if clean_outcomes else "- Build one usable reporting output from a real beginner use case.")
+            + "\n"
+        )
         canonical_json = {
             "schemaVersion": "1.0",
             "courseIdBase": course_id_base,
-            "courseName": topic,
+            "courseName": public_title,
             "version": utc_now()[:10],
             "language": target_language,
             "metadata": {
                 "publish": {
                     "tagline": publish_title,
                     "publicDescription": description,
-                    "whoItsFor": (research_sections.get("Primary Audience Hypotheses") or [])[:3],
+                    "whoItsFor": clean_audience,
                     "prerequisites": [],
                     "whatYouShip": [str(item.get("deliverable") or "") for item in canonical_lessons[:6] if str(item.get("deliverable") or "").strip()],
                     "useAndShareNote": "Draft package exported from the local sovereign creator workflow.",
@@ -4746,8 +5003,8 @@ class CourseQualityDaemon:
             },
             "intent": {
                 "oneSentence": description,
-                "outcomes": (research_sections.get("Outcome Hypotheses") or [])[:4],
-                "nonGoals": (research_sections.get("Scope Boundaries") or [])[1:4],
+                "outcomes": clean_outcomes,
+                "nonGoals": clean_non_goals,
             },
             "qualityGates": {
                 "lessonLengthMinutes": [20, 30],
@@ -4773,7 +5030,7 @@ class CourseQualityDaemon:
             "lessons": canonical_lessons,
         }
         ccs_md = (
-            f"# {topic}\n\n"
+            f"# {public_title}\n\n"
             f"Language: {target_language}\n\n"
             "## 30-Day Architecture\n\n"
             + "\n".join(
@@ -4788,7 +5045,7 @@ class CourseQualityDaemon:
             "exportedBy": self.config.live_actor,
             "course": {
                 "courseId": course_id,
-                "name": topic,
+                "name": public_title,
                 "description": description,
                 "language": target_language,
                 "durationDays": 30,
@@ -4810,7 +5067,7 @@ class CourseQualityDaemon:
                 "json": canonical_json,
                 "ccsMd": ccs_md,
             },
-            "courseIdea": research_markdown,
+            "courseIdea": course_idea_summary,
         }
 
     def _creator_build_blueprint_seed(
@@ -5998,6 +6255,8 @@ class CourseQualityDaemon:
         task_key = str(task["task_key"])
         details = self._creator_task_details(task)
         before = _normalize_lesson_payload(dict(details.get("before") or {}))
+        lesson_row = dict(details.get("lessonRow") or {})
+        source_rows = list(details.get("sourceRows") or [])
         target_language = str(task["language"] or details.get("language") or "")
         human_feedback = self.state.feedback_comments(str(task["task_key"]))
         course = {
@@ -6017,6 +6276,62 @@ class CourseQualityDaemon:
         }
         context = dict(details.get("context") or {})
         audit = audit_lesson(before, target_language)
+        if lesson_row:
+            sanitized_before = _normalize_lesson_payload(
+                {
+                    "title": self._creator_public_lesson_title(
+                        str(lesson_row.get("lesson_title") or ""),
+                        str(before.get("title") or lesson.get("title") or ""),
+                    ),
+                    "content": self._creator_render_public_lesson_content(
+                        str(lesson_row.get("lesson_title") or before.get("title") or lesson.get("title") or ""),
+                        str(lesson_row.get("goal") or ""),
+                        str(lesson_row.get("deliverable") or ""),
+                        str(lesson_row.get("lesson_title") or ""),
+                        source_rows,
+                    ),
+                    "emailSubject": self._creator_render_public_email_subject(
+                        self._creator_public_lesson_title(
+                            str(lesson_row.get("lesson_title") or ""),
+                            str(before.get("title") or lesson.get("title") or ""),
+                        ),
+                        int(str(details.get("creatorDay") or "0") or "0") or 1,
+                    ),
+                    "emailBody": self._creator_render_public_email_body(
+                        self._creator_public_lesson_title(
+                            str(lesson_row.get("lesson_title") or ""),
+                            str(before.get("title") or lesson.get("title") or ""),
+                        ),
+                        str(lesson_row.get("deliverable") or ""),
+                    ),
+                }
+            )
+            sanitized_audit = audit_lesson(sanitized_before, target_language)
+            if sanitized_audit.is_valid:
+                self._creator_store_qc_result(
+                    str(details.get("runId") or ""),
+                    str(task["task_key"]),
+                    "lesson",
+                    sanitized_before,
+                    {
+                        "lessonId": str(task["lesson_id"] or ""),
+                        "status": "sanitized-valid",
+                        "displayTitle": str(sanitized_before.get("title") or task["lesson_id"] or ""),
+                    },
+                )
+                judgement = confidence_for_completion("creator-sanitized", sanitized_audit.warnings)
+                return {
+                    "status": "sanitized-valid",
+                    "warnings": sanitized_audit.warnings,
+                    "judgement": judgement,
+                    "before": before,
+                    "after": sanitized_before,
+                    "displayTitle": str(sanitized_before.get("title") or task["lesson_id"] or ""),
+                    "humanCourseName": course["name"],
+                    "humanDayLabel": day_label,
+                    "humanLessonTitle": str(sanitized_before.get("title") or task["lesson_id"] or ""),
+                    "creatorRunId": str(details.get("runId") or ""),
+                }
         if audit.is_valid:
             self._creator_store_qc_result(
                 str(details.get("runId") or ""),

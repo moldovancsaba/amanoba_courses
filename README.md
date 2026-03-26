@@ -41,7 +41,7 @@ After launch, open:
 Install:
 
 ```bash
-cd /Users/chappie/Projects/amanoba_courses
+cd "$HOME/Projects/amanoba_courses"
 bash tools/macos/AmanobaMenubar/install_AmanobaMenubar.sh
 ```
 
@@ -73,7 +73,7 @@ Mac mini handoff:
 ## Quick Start
 
 ```bash
-cd /Users/chappie/Projects/amanoba_courses
+cd "$HOME/Projects/amanoba_courses"
 ./start_amanoba.command
 ```
 
@@ -82,7 +82,7 @@ cd /Users/chappie/Projects/amanoba_courses
 Install or refresh restart-proof macOS launch agents:
 
 ```bash
-cd /Users/chappie/Projects/amanoba_courses
+cd "$HOME/Projects/amanoba_courses"
 bash scripts/install-course-quality-launchagents.sh
 ```
 
@@ -148,7 +148,7 @@ That means:
 - if the specialist path rejects or fails, QC falls back to the existing rewrite/failover path
 - Ollama is fallback only when MLX is unavailable or temporarily cooled down after repeated runtime failures,
 - the watchdog treats `selected provider != mlx` as a repairable incident and tries to restore MLX automatically,
-- the MLX path runs through the interpreter configured in [`course_quality_daemon.json`](course_quality_daemon.json), which currently points to `/usr/bin/python3`.
+- the MLX path runs through the dedicated [`.venv-mlx/bin/python`](.venv-mlx/bin/python) interpreter so health checks and generation use the same runtime.
 
 Current persisted mode lives in:
 
@@ -185,15 +185,15 @@ Resident creator roles that should stay warm:
 
 Live bridge dependency:
 
-- the worker bridge is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
+- the worker bridge lives in the live Amanoba app workspace under the current user home directory
 - fresh-machine live app bootstrap uses:
-  - `cd /Users/chappie/Projects/amanoba`
+  - `cd "$HOME/Projects/amanoba"`
   - `vercel login`
   - `vercel link --yes --scope narimato --project amanoba`
   - `vercel env ls`
   - `vercel env pull .env.local --yes`
   - `npm install`
-- live queue advancement still requires a real `MONGODB_URI` and `DB_NAME="amanoba"` in `/Users/chappie/Projects/amanoba/.env.local`
+- live queue advancement still requires a real `MONGODB_URI` and `DB_NAME="amanoba"` in `"$HOME/Projects/amanoba/.env.local"`
 - when that secret is missing, the worker correctly reports `waiting-dependency`
 
 ## Sovereign Course Creator
@@ -298,7 +298,7 @@ Source of truth:
 
 - [`docs/amanoba-course-content-standard-v1-0.md`](docs/amanoba-course-content-standard-v1-0.md)
 - [`docs/course-package-format.md`](docs/course-package-format.md)
-- [`/Users/chappie/Projects/amanoba/app/lib/lesson-content.ts`](/Users/chappie/Projects/amanoba/app/lib/lesson-content.ts)
+- the Amanoba app workspace `app/lib/lesson-content.ts` source referenced by the compatibility contract
 
 ## More Documentation
 

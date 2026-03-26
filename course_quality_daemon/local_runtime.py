@@ -13,8 +13,10 @@ import threading
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
+from .portable_paths import resolve_portable_path
 from .validator import audit_lesson, validate_question
 
 
@@ -648,10 +650,8 @@ class MLXProvider(BaseProvider):
         return self.health().available
 
     def _resolved_model_path(self) -> str:
-        candidate = os.path.expanduser(self.model)
-        if os.path.isdir(candidate):
-            return candidate
-        return self.model
+        candidate = resolve_portable_path(self.model)
+        return str(candidate)
 
     def _server_base_url(self) -> str:
         if not self.server_port:
@@ -780,16 +780,20 @@ class MLXProvider(BaseProvider):
         return text
 
     def _resolve_python_bin(self, configured: str | None) -> str:
+        repo_root = Path(__file__).resolve().parents[1]
         candidates = [
             str(configured or "").strip(),
             os.environ.get("AMANOBA_PYTHON_BIN", "").strip(),
+            str(repo_root / ".venv-mlx" / "bin" / "python"),
             os.path.join(os.getcwd(), ".venv-mlx", "bin", "python"),
-            os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv-mlx", "bin", "python"),
             sys.executable,
         ]
         for candidate in candidates:
-            if candidate and os.path.exists(candidate):
-                return candidate
+            if not candidate:
+                continue
+            resolved = resolve_portable_path(candidate, base_dir=repo_root)
+            if resolved.exists():
+                return str(resolved)
         return sys.executable
 
     def _cooldown_active(self) -> bool:
@@ -1582,7 +1586,7 @@ Validation errors to fix:
             if not provider_name and model:
                 provider_name = "mlx"
             installed = bool(role_config.get("installed"))
-            if not installed and provider_name == "mlx" and os.path.exists(os.path.expanduser(model)):
+            if not installed and provider_name == "mlx" and resolve_portable_path(model).exists():
                 installed = True
             if provider_name == "validator":
                 self.creator_role_providers[role] = NullProvider()

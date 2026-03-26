@@ -11,12 +11,12 @@
       <string>-m</string>
       <string>course_quality_daemon</string>
       <string>--config</string>
-      <string>/Users/chappie/Projects/amanoba_courses/course_quality_daemon.json</string>
+      <string><USER_HOME>/Projects/amanoba_courses/course_quality_daemon.json</string>
       <string>daemon</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/chappie/Projects/amanoba_courses</string>
+    <string><USER_HOME>/Projects/amanoba_courses</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -31,9 +31,9 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/Users/chappie/Projects/amanoba_courses/.course-quality/launchd.stdout.log</string>
+    <string><USER_HOME>/Projects/amanoba_courses/.course-quality/launchd.stdout.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/chappie/Projects/amanoba_courses/.course-quality/launchd.stderr.log</string>
+    <string><USER_HOME>/Projects/amanoba_courses/.course-quality/launchd.stderr.log</string>
   </dict>
 </plist>

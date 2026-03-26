@@ -24,6 +24,49 @@
   "action_feed_limit": 3,
   "max_task_runtime_seconds": 600,
   "runtime": {
+    "creator_pipeline": {
+      "drafter": {
+        "tool": "MLX-LM",
+        "model": "$HOME/.cache/huggingface/hub/models--lmstudio-community--gemma-3-270m-it-MLX-8bit/snapshots/9fae2825eef715ef087b1f6926cb4537071836b1",
+        "label": "Gemma 3 270M",
+        "statusLabel": "drafting",
+        "description": "Breaks source into atomic pieces and initial structure.",
+        "provider": "mlx",
+        "resident_server": true,
+        "server_host": "127.0.0.1",
+        "server_port": 8080,
+        "server_startup_timeout": 240,
+        "health_timeout": 45
+      },
+      "writer": {
+        "tool": "MLX-LM",
+        "model": "$HOME/.cache/huggingface/hub/models--mlx-community--granite-4.0-h-350m-4bit/snapshots/2b96c1f68e5349bcaec2a498a68cc177537e46d1",
+        "label": "Granite 4.0 350M (H-variant)",
+        "statusLabel": "enriching",
+        "description": "Expands the draft into fluent, structured content.",
+        "lesson_max_tokens": 384,
+        "question_max_tokens": 384,
+        "provider": "mlx",
+        "resident_server": true,
+        "server_host": "127.0.0.1",
+        "server_port": 8081,
+        "server_startup_timeout": 240,
+        "health_timeout": 45
+      },
+      "judge": {
+        "tool": "MLX-LM",
+        "model": "$HOME/.cache/huggingface/hub/models--mlx-community--Qwen2.5-0.5B-Instruct-4bit/snapshots/a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3",
+        "label": "Qwen 2.5 0.5B",
+        "statusLabel": "judging",
+        "description": "Checks structure, language, and quality gates.",
+        "provider": "mlx",
+        "resident_server": true,
+        "server_host": "127.0.0.1",
+        "server_port": 8082,
+        "server_startup_timeout": 240,
+        "health_timeout": 45
+      }
+    },
     "provider_order": [
       "mlx",
       "ollama"
@@ -42,38 +85,33 @@
       "timeout": 180,
       "temperature": 0.1,
       "num_predict": 384,
-      "lesson_num_predict": 1024,
+      "lesson_num_predict": 384,
       "question_num_predict": 384,
       "num_ctx": 2048,
       "num_thread": 2
     },
     "mlx": {
-      "model": "/Users/chappie/.cache/huggingface/hub/models--mlx-community--Apertus-8B-Instruct-2509-8bit/snapshots/fa890d8c0f9a9e35630116daa2cebe72a453c882",
-      "python_bin": "/usr/bin/python3",
-      "timeout": 300,
-      "health_timeout": 15,
+      "model": "$HOME/.cache/huggingface/hub/models--mlx-community--Apertus-8B-Instruct-2509-4bit/snapshots/c5e6ae2e52c4149f36cb8e47b7ab1489ef885fed",
+      "python_bin": "$HOME/Projects/amanoba_courses/.venv-mlx/bin/python",
+      "timeout": 180,
+      "health_timeout": 45,
       "cooldown_seconds": 600,
       "max_consecutive_failures": 2,
-      "max_tokens": 768,
-      "lesson_max_tokens": 1400,
-      "question_max_tokens": 768,
-      "fast_mlx_port": 8501
+      "max_tokens": 384,
+      "lesson_max_tokens": 384,
+      "question_max_tokens": 384,
+      "fast_mlx_port": null
     },
     "openai": {
       "api_key_env": "OPENAI_API_KEY",
       "model": "gpt-5.2"
-    },
-    "resident_creator_roles": [
-      {"name": "DRAFTER", "host": "127.0.0.1", "port": 8080, "model_label": "Gemma 3 270M", "family": "MLX quantized local model", "model": "/Users/chappie/.cache/huggingface/hub/models--mlx-community--gemma-3-270m-it-4bit/snapshots/ff1143e3a10547c9f2129e94ca37059b096b23f4", "launch_label": "com.amanoba.coursequality.role.drafter", "warm_prompt": "Reply with exactly: READY"},
-      {"name": "WRITER", "host": "127.0.0.1", "port": 8081, "model_label": "Granite 4.0 350M (H)", "family": "MLX quantized local model", "model": "/Users/chappie/.cache/huggingface/hub/models--mlx-community--granite-4.0-h-350m-8bit/snapshots/754e5ae403ffa03922e36332ca5e528f14464a1b", "launch_label": "com.amanoba.coursequality.role.writer", "warm_prompt": "Reply with exactly: READY"},
-      {"name": "JUDGE", "host": "127.0.0.1", "port": 8082, "model_label": "Qwen 2.5 0.5B", "family": "MLX quantized local model", "model": "/Users/chappie/.cache/huggingface/hub/models--mlx-community--Qwen2.5-0.5B-Instruct-4bit/snapshots/a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3", "launch_label": "com.amanoba.coursequality.role.judge", "warm_prompt": "Reply with exactly: READY"}
-    ]
+    }
   },
   "live": {
-    "app_root": "/Users/chappie/Projects/amanoba",
+    "app_root": "$HOME/Projects/amanoba",
     "bridge_script": "scripts/course-quality-live-bridge.ts",
     "actor": "course-quality-daemon",
-    "batch_size": 100,
+    "batch_size": 25,
     "batch_passes": 8,
     "bridge_timeout_seconds": 120
   },
@@ -86,10 +124,10 @@
     "full_restart_interval_seconds": 10800,
     "quarantine_after_failures": 2,
     "primary_writer_provider": "mlx",
-    "worker_process_timeout_seconds": 600,
-    "worker_progress_timeout_seconds": 600,
-    "worker_backlog_timeout_seconds": 600,
-    "mlx_process_timeout_seconds": 600,
+    "worker_process_timeout_seconds": 300,
+    "worker_progress_timeout_seconds": 120,
+    "worker_backlog_timeout_seconds": 120,
+    "mlx_process_timeout_seconds": 120,
     "dashboard_request_timeout_seconds": 8,
     "ollama_request_timeout_seconds": 5
   }

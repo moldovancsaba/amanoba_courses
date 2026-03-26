@@ -6,9 +6,9 @@ If an older document, historical handover, or stale note conflicts with this fil
 
 ## Code and runtime
 
-The active product workspace is:
+The active product workspace is the current checkout under the target machine home directory:
 
-- `/Users/chappie/Projects/amanoba_courses`
+- `<USER_HOME>/Projects/amanoba_courses`
 
 The active Git repository is:
 
@@ -23,6 +23,15 @@ The active runtime truth for the local quality system is:
 - `.course-quality/reports/health.json`
 - `.course-quality/reports/feed.json`
 - `.course-quality/reports/watchdog.json`
+
+Portable machine bootstrap:
+
+- the local QC runtime expects `.env.local` to exist on each machine
+- the supported way to recreate `.env.local` on a fresh machine is to link the repo to the correct Vercel project and run `vercel env pull .env.local`
+- minimum local env values: `MONGODB_URI`, `DB_NAME=amanoba`
+- optional fallback env value: `OPENAI_API_KEY`
+- if the machine is missing `.env.local`, do not guess the secrets; pull them from the linked Vercel project instead
+- machine-local paths in runtime config are resolved against the current user home when possible, so `~`, `$HOME`, and old `/Users/<name>/...` snapshots can all map to the current machine without rewriting the repo by hand
 
 The active local product surface is the browserview control center at:
 
@@ -50,14 +59,14 @@ Current model roster and residency surface:
 
 Current live bridge dependency truth:
 
-- the live bridge script is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
+- the live bridge script is in the live Amanoba app workspace under the current user home directory
 - the live Amanoba app is linked to Vercel project `narimato/amanoba`
 - the fresh-machine bootstrap path for the live app is:
   - `vercel login`
   - `vercel link --yes --scope narimato --project amanoba`
   - `vercel env ls`
   - `vercel env pull .env.local --yes`
-- `/Users/chappie/Projects/amanoba/.env.local` must contain a real `MONGODB_URI` and `DB_NAME="amanoba"`
+- the live app `.env.local` under the current user home directory must contain a real `MONGODB_URI` and `DB_NAME="amanoba"`
 - if `MONGODB_URI` is missing, the worker must report `waiting-dependency` instead of pretending the queue is healthy
 - current continuous daemon cadence is `60` seconds for scan, queue check, idle sleep, and post-task sleep
 
@@ -139,14 +148,14 @@ Therefore:
 - current-behavior docs are authoritative only when they match the code and live runtime
 - stale docs should be updated, superseded, or treated as historical/supporting
 - if a doc references the old hyphenated workspace path, update it to the Git-backed underscore path
-- if a doc references `/Users/moldovancsaba/Projects/amanoba_courses`, update it to `/Users/chappie/Projects/amanoba_courses`
+- if a doc references a fixed user-home workspace path, update it to the current user home directory or a portable placeholder
 - if a doc describes an old workflow, it must not be used as the delivery source without first reconciling it to the current system
 
 ## Course content and publishing
 
 For lesson and quiz content:
 
-- live system compatibility is defined by `/Users/chappie/Projects/amanoba`
+- live system compatibility is defined by `<USER_HOME>/Projects/amanoba`
 - canonical content/course standards remain in this repo under `docs/`
 - sovereign course-creator compatibility is defined in `docs/reference/sovereign-course-creator-compatibility-contract.md`
 - when there is a conflict, the current application behavior plus the explicitly designated SSOT docs win

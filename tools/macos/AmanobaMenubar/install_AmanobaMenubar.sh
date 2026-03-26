@@ -17,7 +17,14 @@ osascript -e "tell application \"${APP_NAME}\" to quit" >/dev/null 2>&1 || true
 rm -rf "$APP_DIR"
 
 # Keep only the current Amanoba menubar bundle; remove known legacy copies.
-for legacy in "$HOME/Applications/HatoriMenubar.app" "$HOME/Applications/OpenClawMenubar.app" "$HOME/Applications/ReplyMenubar.app"; do
+for legacy in \
+  "$HOME/Applications/HatoriMenubar.app" \
+  "$HOME/Applications/OpenClawMenubar.app" \
+  "$HOME/Applications/ReplyMenubar.app" \
+  "/Applications/HatoriMenubar.app" \
+  "/Applications/OpenClawMenubar.app" \
+  "/Applications/ReplyMenubar.app" \
+  "/Applications/AmanobaMenubar.app"; do
   rm -rf "$legacy"
 done
 
@@ -88,9 +95,10 @@ echo "Installed: $APP_DIR (version ${APP_VERSION})"
 echo "Bundled resource manifest: $RES_DIR/runtime-resources.json"
 
 osascript -e "tell application \"System Events\"
-  if not (exists login item \"${APP_NAME}\") then
-    make login item at end with properties {path:\"${APP_DIR}\", hidden:false}
+  if exists login item \"${APP_NAME}\" then
+    delete login item \"${APP_NAME}\"
   end if
+  make login item at end with properties {path:\"${APP_DIR}\", hidden:false}
 end tell" >/dev/null 2>&1 || true
 
 echo "Auto-launch enabled."

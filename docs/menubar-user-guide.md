@@ -16,7 +16,7 @@ Current build version:
 ## Install
 
 ```bash
-cd /Users/chappie/Projects/amanoba_courses
+cd "$HOME/Projects/amanoba_courses"
 bash tools/macos/AmanobaMenubar/install_AmanobaMenubar.sh
 ```
 

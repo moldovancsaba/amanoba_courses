@@ -585,6 +585,23 @@ def validate_question(question: dict[str, Any], target_language: str | None = No
     if question_type == "recall":
         errors.append("Recall questions are not allowed.")
 
+    leak_patterns = (
+        "the best answer should",
+        "distractors should",
+        "generic action.",
+        "incomplete delivery.",
+        "apply apply",
+        "localized lesson title",
+        "localized subject line",
+    )
+    lowered_stem = stem.lower()
+    if any(pattern in lowered_stem for pattern in leak_patterns) or re.search(r"\bfocus\s+\d+\s*:", lowered_stem):
+        errors.append("Question still contains creator or QC instruction leakage.")
+    for idx, option in enumerate(options):
+        lowered_option = str(option).strip().lower()
+        if any(pattern in lowered_option for pattern in leak_patterns) or re.search(r"\bfocus\s+\d+\s*:", lowered_option):
+            errors.append(f"Option {idx} still contains creator or QC instruction leakage.")
+
     errors.extend(_language_purity_errors([stem, *[str(option) for option in options]], target_language))
 
     if isinstance(correct_index, int) and 0 <= correct_index < len(options):
@@ -615,6 +632,32 @@ def audit_lesson(lesson: dict[str, Any], target_language: str | None = None) -> 
         warnings.append("Email subject is short.")
     if len(email_body) < 120:
         warnings.append("Email body is short.")
+
+    leaked_values = {
+        "title": title.lower(),
+        "content": content.lower(),
+        "email subject": email_subject.lower(),
+        "email body": email_body.lower(),
+    }
+    for field_name, lowered in leaked_values.items():
+        if (
+            "localized lesson title" in lowered
+            or "localized subject line" in lowered
+            or "### what learners will be able to do" in lowered
+            or "the learner should be able to" in lowered
+            or "## who" in lowered
+            or "## what" in lowered
+            or "## where" in lowered
+            or "## when" in lowered
+        ):
+            errors.append(f"Lesson {field_name} still contains creator placeholder or scaffold leakage.")
+            break
+    if re.search(r"(?mi)^##\s+Bibliography \(sources used\)\s*$", content) and not re.search(r"(?mi)^-\s+\[?.+\]?\(?https?://", content):
+        errors.append("Lesson contains an empty bibliography section.")
+    if re.search(r"(?mi)^##\s+Read more \(optional\)\s*$", content):
+        errors.append("Lesson still contains the optional read-more placeholder section.")
+    if re.search(r"(?mi)^##\s+Today\s*$", content):
+        warnings.append("Lesson still contains a generic 'Today' heading instead of a learner-facing section title.")
 
     target = str(target_language or "").strip().lower()
     if target in LESSON_SECTION_MARKERS:
