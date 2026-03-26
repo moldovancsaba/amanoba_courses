@@ -12,6 +12,7 @@ APP_VERSION="0.2.0"
 if pgrep -f "${APP_DIR}/Contents/MacOS/${APP_NAME}" >/dev/null 2>&1; then
   pkill -f "${APP_DIR}/Contents/MacOS/${APP_NAME}" >/dev/null 2>&1 || true
 fi
+pkill -x "${APP_NAME}" >/dev/null 2>&1 || true
 osascript -e "tell application \"${APP_NAME}\" to quit" >/dev/null 2>&1 || true
 rm -rf "$APP_DIR"
 
