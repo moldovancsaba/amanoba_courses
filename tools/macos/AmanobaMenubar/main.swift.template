@@ -135,6 +135,13 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
 
     private func roleLine(label: String, role: [String: Any]) -> String {
         let status = (role["status"] as? String) ?? "unknown"
+        let modelName = (
+            role["modelLabel"] as? String
+        ) ?? (
+            role["label"] as? String
+        ) ?? (
+            role["model"] as? String
+        ) ?? ""
         let symbol: String
         switch status.lowercased() {
         case "healthy", "working", "available":
@@ -148,7 +155,8 @@ final class AmanobaMenubarApp: NSObject, NSApplicationDelegate {
         default:
             symbol = "⚪"
         }
-        return "\(symbol) \(label)"
+        let suffix = modelName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return suffix.isEmpty ? "\(symbol) \(label)" : "\(symbol) \(label): \(suffix)"
     }
 }
 

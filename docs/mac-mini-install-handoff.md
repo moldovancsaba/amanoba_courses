@@ -42,9 +42,9 @@ This version is portable. It does not assume a fixed home directory. Substitute 
 
 ## Required Models
 
-- `DRAFTER`: Gemma 3 270M
-- `WRITER`: Granite 4.0 350M (H-variant)
-- `JUDGE`: Qwen 2.5 0.5B
+- `DRAFTER: Gemma 3 270M`
+- `WRITER: Granite 4.0 350M (H-variant)`
+- `JUDGE: Qwen 2.5 0.5B`
 
 ## Source of Truth
 

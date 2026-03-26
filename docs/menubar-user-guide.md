@@ -88,13 +88,13 @@ The menu-bar title uses simple color states:
 - Ollama fallback with `keep_alive`
 - MLX/Apertus as the primary writer, with Ollama used only as fallback when MLX is unavailable
 - launch agents wrapped in `caffeinate -dimsu`
-- menubar title uses only short role labels, not model paths
+- menubar title uses short role labels plus the model names, not filesystem paths
 
 Current resident role roster:
 
-- `DRAFTER` -> `Gemma 3 270M`
-- `WRITER` -> `Granite 4.0 350M (H)`
-- `JUDGE` -> `Qwen 2.5 0.5B`
+- `DRAFTER: Gemma 3 270M`
+- `WRITER: Granite 4.0 350M (H)`
+- `JUDGE: Qwen 2.5 0.5B`
 
 ## Auto-Launch
 

@@ -84,7 +84,7 @@ It also provides these actions:
 
 ## Menubar Rules
 
-- short labels only
+- short role labels with model names
 - no debug-only items
 - no long filesystem paths
 - no `Open Health JSON`
@@ -93,13 +93,13 @@ It also provides these actions:
 
 The dashboard shows one compact `Model Roster` row with five live entries:
 
-- `DRAFTER`
-- `WRITER`
-- `JUDGE`
+- `DRAFTER: Gemma 3 270M`
+- `WRITER: Granite 4.0 350M (H)`
+- `JUDGE: Qwen 2.5 0.5B`
 - `mlx`
 - `ollama`
 
-The short labels are deliberate. The interface does not show long filesystem paths in the menubar.
+The menubar keeps the rows short, but it does show the model names so operators can identify the resident roles at a glance. The interface does not show long filesystem paths in the menubar.
 
 ## Typical Workflow
 
