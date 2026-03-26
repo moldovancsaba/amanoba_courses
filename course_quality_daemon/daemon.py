@@ -2850,12 +2850,13 @@ class CourseQualityDaemon:
         profiles = {name: self._power_profile_with_effective_limits(profile) for name, profile in self.power_profiles().items()}
         active_profile = self._power_profile_with_effective_limits(dict(self.config.runtime_config.get("ollama") or {}))
         worker_state = self._worker_state_snapshot()
+        resident_roles = self.resident_role_snapshot()
         return {
             "version": AMANOBA_VERSION,
             "generatedAt": utc_now(),
             "runtime": self.runtime.health_snapshot(),
             "system": {
-                "residentRoles": self.resident_role_snapshot(),
+                "residentRoles": resident_roles,
             },
             "power": {
                 "mode": self.current_power_mode(),
@@ -2866,7 +2867,7 @@ class CourseQualityDaemon:
             "inventory": self.live_inventory_counts(),
             "worker": self.worker_status_snapshot(),
             "workerState": worker_state,
-            "roles": self._role_status_snapshot(worker_state),
+            "roles": self._role_status_snapshot(worker_state, resident_roles),
             "creatorPipeline": self._creator_pipeline_manifest(),
             "dashboard": {
                 "host": self.config.dashboard_host,
@@ -2897,11 +2898,10 @@ class CourseQualityDaemon:
                 "profiles": profiles,
                 "profile": active_profile,
             }
-        system_snapshot = dict(cached.get("system") or {})
-        if not system_snapshot:
-            system_snapshot = {
-                "residentRoles": self.resident_role_snapshot(),
-            }
+        resident_roles = self.resident_role_snapshot()
+        system_snapshot = {
+            "residentRoles": resident_roles,
+        }
         counts_snapshot = self.state.counts()
         worker_state = self._worker_state_snapshot()
         return {
@@ -2914,7 +2914,7 @@ class CourseQualityDaemon:
             "inventory": dict(cached.get("inventory") or {}),
             "worker": self.worker_status_snapshot(),
             "workerState": worker_state,
-            "roles": self._role_status_snapshot(worker_state),
+            "roles": self._role_status_snapshot(worker_state, resident_roles),
             "dashboard": {
                 "host": self.config.dashboard_host,
                 "port": self.config.dashboard_port,
@@ -2994,14 +2994,19 @@ class CourseQualityDaemon:
             return True, str(matches[0])
         return False, ""
 
-    def _role_status_snapshot(self, worker_state: dict[str, Any]) -> dict[str, Any]:
+    def _role_status_snapshot(self, worker_state: dict[str, Any], resident_snapshot: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         pipeline = self._creator_pipeline_manifest()
+        resident_roles = {
+            str(item.get("name") or "").strip().lower(): dict(item or {})
+            for item in (resident_snapshot or self.resident_role_snapshot())
+        }
         worker_phase = str(worker_state.get("phase") or "idle").strip().lower() or "idle"
         worker_label = "working" if worker_state.get("state") == "working" else ("stalled" if worker_state.get("stalled") else "idle")
         role_names = ("drafter", "writer", "judge")
 
         def _role_snapshot(role: str) -> dict[str, Any]:
             pipeline_item = dict(pipeline.get(role) or {})
+            resident_item = dict(resident_roles.get(role) or {})
             health = dict(self.runtime.creator_role_health(role) or {})
             requested_model = str(pipeline_item.get("label") or pipeline_item.get("model") or "").strip()
             runtime_model = str(health.get("resolvedModel") or health.get("configuredModel") or "").strip()
@@ -3009,9 +3014,19 @@ class CourseQualityDaemon:
             installed = bool(pipeline_item.get("installed"))
             available = bool(health.get("available"))
             status = str(health.get("status") or ("MISSING" if not installed else "UNKNOWN")).upper()
+            resident_reachable = bool(resident_item.get("reachable"))
+            if resident_reachable:
+                runtime_provider = runtime_provider or str(pipeline_item.get("provider") or "mlx")
+                runtime_model = runtime_model or requested_model or str(resident_item.get("modelLabel") or "").strip()
+                available = True
+                if status in {"STANDBY", "UNKNOWN", "UNAVAILABLE", ""}:
+                    status = "HEALTHY"
             if not installed:
                 status = "MISSING"
             detail_bits = [str(health.get("detail") or "").strip()]
+            resident_detail = str(resident_item.get("detail") or "").strip()
+            if resident_reachable and resident_detail:
+                detail_bits = [resident_detail]
             if requested_model and runtime_model and requested_model != runtime_model:
                 detail_bits.append(f"runtime: {runtime_model}")
             elif runtime_model and not detail_bits[0]:
@@ -3068,6 +3083,7 @@ class CourseQualityDaemon:
             except (TypeError, ValueError):
                 port = 0
             reachable = False
+            status = "UNAVAILABLE"
             detail = f"{host}:{port}" if port > 0 else host
             if port > 0:
                 try:
@@ -3083,12 +3099,15 @@ class CourseQualityDaemon:
                 health_status = str(payload.get("status") or "").strip().upper()
                 if health_status:
                     detail = f"{detail}; {health_status.lower()}"
+                    status = "HEALTHY" if health_status in {"HEALTHY", "WARM"} else health_status
+            elif reachable:
+                status = "HEALTHY"
             snapshot.append(
                 {
                     "name": name,
                     "host": host,
                     "port": port,
-                    "status": "WARM" if reachable else "DOWN",
+                    "status": status,
                     "reachable": reachable,
                     "detail": detail,
                     "modelLabel": model_label,

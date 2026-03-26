@@ -153,6 +153,21 @@ class ResidentRoleHandler(BaseHTTPRequestHandler):
         if self.path in {"/", "/health"}:
             self._write_json(200, self.runtime.health())
             return
+        if self.path == "/v1/models":
+            self._write_json(
+                200,
+                {
+                    "object": "list",
+                    "data": [
+                        {
+                            "id": self.runtime.config.model_label,
+                            "object": "model",
+                            "owned_by": "amanoba",
+                        }
+                    ],
+                },
+            )
+            return
         self._write_json(404, {"ok": False, "error": "Not found"})
 
     def do_POST(self) -> None:
