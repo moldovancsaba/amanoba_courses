@@ -112,6 +112,7 @@ Service behavior:
 - `caffeinate`: `RunAtLoad` + `KeepAlive`
 
 So the UI/runtime stay resident, the worker stays up as one continuous daemon, the watchdog relaunches on schedule and at login, and the Mac stays awake while the stack is active.
+The current continuous daemon cadence is `60` seconds for scan, queue check, idle sleep, and post-task sleep, so the worker keeps advancing without five-minute idle gaps.
 The queue is guarded by a shared process lock, so only one QC worker process can own job execution at a time.
 
 The watchdog is a separate supervisor, not the worker itself. It runs from launchd at login and on a repeating schedule, repairs stale locks and stuck tasks, kills frozen worker runs, enforces MLX/Apertus as the primary writer provider, and kickstarts the worker/dashboard/Ollama when health checks fail.
@@ -185,7 +186,12 @@ Resident creator roles that should stay warm:
 Live bridge dependency:
 
 - the worker bridge is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
-- live queue advancement still requires a real `MONGODB_URI` in `/Users/chappie/Projects/amanoba/.env.local`
+- fresh-machine live app bootstrap uses:
+  - `vercel login`
+  - `vercel link --yes --scope narimato --project amanoba`
+  - `vercel env ls`
+  - `vercel env pull .env.local --yes`
+- live queue advancement still requires a real `MONGODB_URI` and `DB_NAME="amanoba"` in `/Users/chappie/Projects/amanoba/.env.local`
 - when that secret is missing, the worker correctly reports `waiting-dependency`
 
 ## Sovereign Course Creator

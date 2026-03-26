@@ -51,8 +51,15 @@ Current model roster and residency surface:
 Current live bridge dependency truth:
 
 - the live bridge script is `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`
-- the worker can only advance the live queue when `/Users/chappie/Projects/amanoba/.env.local` contains a real `MONGODB_URI`
-- if `MONGODB_URI` is missing, the worker must report `waiting-dependency`
+- the live Amanoba app is linked to Vercel project `narimato/amanoba`
+- the fresh-machine bootstrap path for the live app is:
+  - `vercel login`
+  - `vercel link --yes --scope narimato --project amanoba`
+  - `vercel env ls`
+  - `vercel env pull .env.local --yes`
+- `/Users/chappie/Projects/amanoba/.env.local` must contain a real `MONGODB_URI` and `DB_NAME="amanoba"`
+- if `MONGODB_URI` is missing, the worker must report `waiting-dependency` instead of pretending the queue is healthy
+- current continuous daemon cadence is `60` seconds for scan, queue check, idle sleep, and post-task sleep
 
 Current creator page model:
 

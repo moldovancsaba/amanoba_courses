@@ -12,6 +12,13 @@ This tool gives you a local, continuous worker that:
 - writes a live feed of queued, running, completed, and failed jobs,
 - exposes a local web dashboard as a control center.
 
+Owner: `amanoba_courses`
+
+Current SSOT status:
+
+- current operational doc for the local QC daemon in `Amanoba v0.2.0`
+- if this file conflicts with live code or runtime, the code/runtime wins and this file must be updated
+
 ## Files
 
 - `course_quality_daemon/` — Python package
@@ -55,6 +62,25 @@ The launch-managed resident creator roles are:
 - `JUDGE` -> `Qwen 2.5 0.5B` on `127.0.0.1:8082`
 
 Each role exposes `/health`, `/generate`, and `/v1/chat/completions`.
+
+## Fresh Machine Bootstrap
+
+The live Amanoba app at `/Users/chappie/Projects/amanoba` is linked to Vercel project `narimato/amanoba`.
+
+Fresh-machine bootstrap order:
+
+1. `vercel login`
+2. `vercel link --yes --scope narimato --project amanoba`
+3. `vercel env ls`
+4. `vercel env pull .env.local --yes`
+
+Required live env truth:
+
+- `.env.local` must contain `MONGODB_URI`
+- `.env.local` must contain `DB_NAME="amanoba"`
+- if OpenAI fallback is intentionally enabled in the live app, `OPENAI_API_KEY` must also be present there
+
+If those values are missing, the worker must report `waiting-dependency` instead of pretending the queue is healthy.
 
 ## Feedback feed
 
@@ -153,6 +179,7 @@ Creator UX behavior:
 
 The QC system now runs as a single long-lived daemon process under launchd.
 The dashboard does not own a second in-process worker thread, and the queue is guarded by `.course-quality/process.lock`, so only one QC worker process can own execution at a time.
+The current continuous cadence is `60` seconds for `scan_interval_seconds`, `queue_check_interval_seconds`, `idle_sleep_seconds`, and `post_task_sleep_seconds`.
 
 Kanban column behavior:
 

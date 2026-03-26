@@ -5,7 +5,7 @@
   "state_db_path": ".course-quality/state.sqlite3",
   "backups_dir": ".course-quality/backups",
   "reports_dir": ".course-quality/reports",
-  "scan_interval_seconds": 300,
+  "scan_interval_seconds": 60,
   "scan_globs": [
     "**/*.json"
   ],
@@ -18,9 +18,9 @@
   "fix_lessons": true,
   "max_attempts_per_task": 5,
   "feed_limit": 25,
-  "queue_check_interval_seconds": 300,
-  "idle_sleep_seconds": 300,
-  "post_task_sleep_seconds": 300,
+  "queue_check_interval_seconds": 60,
+  "idle_sleep_seconds": 60,
+  "post_task_sleep_seconds": 60,
   "action_feed_limit": 3,
   "max_task_runtime_seconds": 600,
   "runtime": {
@@ -73,7 +73,7 @@
     "app_root": "/Users/chappie/Projects/amanoba",
     "bridge_script": "scripts/course-quality-live-bridge.ts",
     "actor": "course-quality-daemon",
-    "batch_size": 25,
+    "batch_size": 100,
     "batch_passes": 8,
     "bridge_timeout_seconds": 120
   },

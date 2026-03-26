@@ -1946,6 +1946,19 @@ class AmanobaLiveBridge:
     def mark_reviewed(self, task_key: str, result: str = "valid") -> dict[str, Any]:
         return self._run(["mark-reviewed", "--task-key", task_key, "--actor", self.actor, "--result", result])
 
+    def mark_reviewed_batch(self, task_keys: list[str], result: str = "valid") -> dict[str, Any]:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as handle:
+            json.dump({"taskKeys": list(task_keys)}, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            temp_path = handle.name
+        try:
+            return self._run(["mark-reviewed-batch", "--payload-file", temp_path, "--actor", self.actor, "--result", result])
+        finally:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+
     def stats(self) -> dict[str, Any]:
         return self._run(["stats"])
 
@@ -2260,6 +2273,7 @@ class CourseQualityDaemon:
         candidates = payload.get("candidates") or []
         created = 0
         reviewed_valid = 0
+        valid_task_keys: list[str] = []
         for candidate in candidates:
             kind = str(candidate.get("kind") or "").strip().lower()
             if kind == "lesson":
@@ -2273,8 +2287,7 @@ class CourseQualityDaemon:
                 audit = audit_lesson(lesson_payload, str(lesson.get("language") or ""))
                 task_key = f"lesson::{lesson['objectId']}"
                 if audit.is_valid:
-                    self.live_bridge.mark_reviewed(task_key, result="already-valid")
-                    reviewed_valid += 1
+                    valid_task_keys.append(task_key)
                     continue
                 created += 1
                 human_course = str(lesson.get("courseName") or lesson.get("courseId") or "Unknown course")
@@ -2323,8 +2336,7 @@ class CourseQualityDaemon:
             ):
                 continue
             if validation.is_valid:
-                self.live_bridge.mark_reviewed(task_key, result="already-valid")
-                reviewed_valid += 1
+                valid_task_keys.append(task_key)
                 continue
             created += 1
             human_course = str(question.get("courseName") or question.get("courseId") or "Unknown course")
@@ -2350,6 +2362,9 @@ class CourseQualityDaemon:
                     "judgement": confidence_for_validation("question", validation.errors, validation.warnings),
                 },
             )
+        if valid_task_keys:
+            self.live_bridge.mark_reviewed_batch(valid_task_keys, result="already-valid")
+            reviewed_valid = len(valid_task_keys)
         self._write_reports()
         return {
             "packages": int((payload.get("counts") or {}).get("courses") or 0),
@@ -2909,24 +2924,52 @@ class CourseQualityDaemon:
         }
 
     def _creator_pipeline_manifest(self) -> dict[str, Any]:
-        configured = dict(self.config.runtime_config.get("creator_pipeline") or {})
+        runtime_cfg = dict(self.config.runtime_config or {})
+        configured = dict(runtime_cfg.get("creator_pipeline") or {})
+        resident_roles = list(runtime_cfg.get("resident_creator_roles") or DEFAULT_RESIDENT_CREATOR_ROLES)
+        resident_by_role: dict[str, dict[str, Any]] = {}
+        for raw in resident_roles:
+            item = dict(raw or {})
+            role_name = str(item.get("name") or "").strip().lower()
+            if role_name:
+                resident_by_role[role_name] = item
         manifest: dict[str, Any] = {}
         for role, defaults in DEFAULT_CREATOR_PIPELINE.items():
             role_config = dict(configured.get(role) or {})
-            configured_model = str(role_config.get("model") or defaults["model"]).strip()
-            installed, location = self._creator_model_install_status(configured_model, defaults.get("provider"))
+            resident_config = dict(resident_by_role.get(role) or {})
+            configured_model = str(role_config.get("model") or resident_config.get("model_label") or defaults["model"]).strip()
+            provider = str(role_config.get("provider") or defaults.get("provider") or "").strip().lower()
+            install_target = str(resident_config.get("model") or role_config.get("model") or configured_model).strip()
+            installed, location = self._creator_model_install_status(install_target, provider)
+            server_host = str(role_config.get("server_host") or resident_config.get("host") or defaults.get("server_host") or "127.0.0.1")
+            try:
+                server_port = int(role_config.get("server_port") or resident_config.get("port") or defaults.get("server_port") or 0)
+            except (TypeError, ValueError):
+                server_port = 0
+            resident_server = bool(role_config.get("resident_server", defaults.get("resident_server", bool(resident_config))))
+            reachable = False
+            if resident_server and server_port > 0:
+                try:
+                    with socket.create_connection((server_host, server_port), timeout=1.0):
+                        reachable = True
+                except OSError:
+                    reachable = False
+            state = "available" if installed and (reachable or not resident_server) else ("degraded" if installed else "missing")
             manifest[role] = {
                 "tool": str(role_config.get("tool") or defaults["tool"]),
                 "model": configured_model,
-                "label": str(role_config.get("label") or defaults.get("label") or configured_model),
+                "label": str(role_config.get("label") or resident_config.get("model_label") or defaults.get("label") or configured_model),
+                "provider": provider,
                 "statusLabel": str(role_config.get("statusLabel") or defaults["statusLabel"]),
                 "description": str(role_config.get("description") or defaults["description"]),
                 "installed": installed,
-                "resident_server": bool(role_config.get("resident_server", defaults.get("resident_server", False))),
-                "server_host": str(role_config.get("server_host") or defaults.get("server_host") or "127.0.0.1"),
-                "server_port": int(role_config.get("server_port") or defaults.get("server_port") or 0),
+                "resident_server": resident_server,
+                "server_host": server_host,
+                "server_port": server_port,
+                "launch_label": str(resident_config.get("launch_label") or ""),
+                "reachable": reachable,
                 "location": location,
-                "state": "available" if installed else "missing",
+                "state": state,
             }
         return manifest
 
