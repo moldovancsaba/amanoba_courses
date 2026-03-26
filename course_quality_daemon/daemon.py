@@ -10,6 +10,7 @@ import os
 import shutil
 import signal
 import sqlite3
+import socket
 import sys
 import tempfile
 import subprocess
@@ -36,6 +37,12 @@ FAILED_COLUMN_LIMIT = 10
 QUARANTINED_COLUMN_LIMIT = 25
 ARCHIVED_COLUMN_LIMIT = 50
 CREATOR_QC_PRIORITY = 1000
+AMANOBA_VERSION = "0.2.0"
+DEFAULT_RESIDENT_CREATOR_ROLES = [
+    {"name": "DRAFTER", "host": "127.0.0.1", "port": 8080},
+    {"name": "WRITER", "host": "127.0.0.1", "port": 8081},
+    {"name": "JUDGE", "host": "127.0.0.1", "port": 8082},
+]
 
 
 def utc_now() -> str:
@@ -2355,7 +2362,16 @@ class CourseQualityDaemon:
             if task is None and self.config.source_mode == "amanoba_live_db":
                 for _ in range(max(1, self.config.live_batch_passes)):
                     self._set_heartbeat("scanning", message="Scanning live DB for more QC work.", advance_progress=True)
-                    scan_result = self._scan_live()
+                    try:
+                        scan_result = self._scan_live()
+                    except Exception as exc:
+                        self._set_heartbeat(
+                            "waiting-dependency",
+                            message=f"Live QC scan blocked: {exc}",
+                            advance_progress=True,
+                        )
+                        self._write_reports()
+                        return "blocked"
                     self.state.quarantine_repeated_failures(self.config.quarantine_after_failures)
                     self.state.quarantine_legacy_timeout_failures()
                     task = self._claim_next_eligible_task(self.config.max_attempts_per_task)
@@ -2760,7 +2776,14 @@ class CourseQualityDaemon:
             while True:
                 now = time.time()
                 if now >= next_scan_at:
-                    self.scan()
+                    try:
+                        self.scan()
+                    except Exception as exc:
+                        self._set_heartbeat(
+                            "waiting-dependency",
+                            message=f"QC scan blocked: {exc}",
+                            advance_progress=True,
+                        )
                     next_scan_at = now + self.config.scan_interval_seconds
                 recovered = self._recover_orphan_running_tasks(reason="daemon-loop")
                 if recovered:
@@ -2772,8 +2795,12 @@ class CourseQualityDaemon:
                     max_runtime_seconds=self.config.max_task_runtime_seconds,
                     max_attempts=self.config.max_attempts_per_task,
                 )
+                process_result = None
                 if self.state.counts().get("running", 0) <= 0:
-                    self.process_one()
+                    process_result = self.process_one()
+                if process_result == "blocked":
+                    time.sleep(self.config.queue_check_interval_seconds)
+                    continue
                 self._set_heartbeat("sleeping", message="Waiting for next QC cycle.", advance_progress=False)
                 time.sleep(self.config.queue_check_interval_seconds)
         finally:
@@ -2798,8 +2825,12 @@ class CourseQualityDaemon:
         active_profile = self._power_profile_with_effective_limits(dict(self.config.runtime_config.get("ollama") or {}))
         worker_state = self._worker_state_snapshot()
         return {
+            "version": AMANOBA_VERSION,
             "generatedAt": utc_now(),
             "runtime": self.runtime.health_snapshot(),
+            "system": {
+                "residentRoles": self.resident_role_snapshot(),
+            },
             "power": {
                 "mode": self.current_power_mode(),
                 "profiles": profiles,
@@ -2840,11 +2871,18 @@ class CourseQualityDaemon:
                 "profiles": profiles,
                 "profile": active_profile,
             }
+        system_snapshot = dict(cached.get("system") or {})
+        if not system_snapshot:
+            system_snapshot = {
+                "residentRoles": self.resident_role_snapshot(),
+            }
         counts_snapshot = self.state.counts()
         worker_state = self._worker_state_snapshot()
         return {
+            "version": str(cached.get("version") or AMANOBA_VERSION),
             "generatedAt": utc_now(),
             "runtime": runtime_snapshot,
+            "system": system_snapshot,
             "power": power_snapshot,
             "counts": counts_snapshot,
             "inventory": dict(cached.get("inventory") or {}),
@@ -2962,6 +3000,39 @@ class CourseQualityDaemon:
             "judge": _judge_snapshot(),
             "pipeline": pipeline,
         }
+
+    def resident_role_snapshot(self) -> list[dict[str, Any]]:
+        runtime_cfg = dict(self.config.runtime_config or {})
+        roles = list(runtime_cfg.get("resident_creator_roles") or DEFAULT_RESIDENT_CREATOR_ROLES)
+        snapshot: list[dict[str, Any]] = []
+        for raw in roles:
+            item = dict(raw or {})
+            name = str(item.get("name") or "ROLE").strip().upper()
+            host = str(item.get("host") or "127.0.0.1").strip()
+            try:
+                port = int(item.get("port") or 0)
+            except (TypeError, ValueError):
+                port = 0
+            reachable = False
+            detail = f"{host}:{port}" if port > 0 else host
+            if port > 0:
+                try:
+                    with socket.create_connection((host, port), timeout=1.5):
+                        reachable = True
+                    detail = f"reachable on {host}:{port}"
+                except OSError as exc:
+                    detail = f"unreachable on {host}:{port} ({exc.__class__.__name__})"
+            snapshot.append(
+                {
+                    "name": name,
+                    "host": host,
+                    "port": port,
+                    "status": "WARM" if reachable else "DOWN",
+                    "reachable": reachable,
+                    "detail": detail,
+                }
+            )
+        return snapshot
 
     def creator_runs_snapshot(self, limit: int = 12) -> dict[str, Any]:
         runs = [self._enrich_creator_run(self._creator_repair_progression_if_needed(run)) for run in self.state.list_creator_runs(limit=limit)]

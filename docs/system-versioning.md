@@ -2,6 +2,10 @@
 
 ## Current state
 
+Current runtime release:
+
+- `Amanoba v0.2.0`
+
 This workspace is attached to a Git repository:
 
 - repository: `moldovancsaba/amanoba_courses`

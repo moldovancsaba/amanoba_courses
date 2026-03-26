@@ -2,7 +2,7 @@
 
 This tool gives you a local, continuous worker that:
 
-- reads the live Amanoba MongoDB-backed app through the bridge in `/Users/moldovancsaba/Projects/amanoba/scripts/course-quality-live-bridge.ts`,
+- reads the live Amanoba MongoDB-backed app through the bridge in `/Users/chappie/Projects/amanoba/scripts/course-quality-live-bridge.ts`,
 - detects weak lessons and invalid quiz questions,
 - queues each fix as a separate task,
 - processes exactly one task at a time,
@@ -11,43 +11,6 @@ This tool gives you a local, continuous worker that:
 - prefers local rewrite providers so it can continue working offline,
 - writes a live feed of queued, running, completed, and failed jobs,
 - exposes a local web dashboard as a control center.
-
-## Status and SSOT
-
-- **Status:** current operational runtime doc
-- **Document owner:** Amanoba course/QC maintainers
-- **Runtime SSOT:** `docs/current-ssot.md`
-- **Conflict rule:** if the live daemon/dashboard/watchdog behavior differs, update this document before using it as an operational reference
-
-## Fresh machine bootstrap
-
-If you are installing the QC app on a new Mac or restoring a machine from scratch, bootstrap the local env file from the linked Vercel project before you start the daemon.
-
-Required local env file:
-
-- `.env.local`
-
-Minimum required values for the QC runtime:
-
-- `MONGODB_URI`
-- `DB_NAME=amanoba`
-- optional: `OPENAI_API_KEY` if you want the OpenAI fallback path enabled
-
-Supported bootstrap flow:
-
-```bash
-vercel login
-vercel link
-vercel env ls
-vercel env pull .env.local
-```
-
-Notes:
-
-- `vercel link` ties the local workspace to the correct Vercel project.
-- `vercel env pull .env.local` pulls the project environment variables that the local scripts need into the `.env.local` file that the QC runtime already reads.
-- If the machine is missing `.env.local`, this is the supported way to recreate it from the project’s Vercel environment.
-- After pulling env vars, verify that `MONGODB_URI` and `DB_NAME` are present before starting the launch agents.
 
 ## Files
 
@@ -71,17 +34,8 @@ The worker now supports provider selection in this order by default:
 That means:
 
 - local MLX/Apertus is the primary unattended writer path,
-- lesson/question QC now first tries a specialist local micro-pipeline:
-  - `drafter` = Gemma 3 270M
-  - `writer` = Granite 4.0 H 350M
-  - `judge` = Qwen 2.5 0.5B
-- specialist QC output is still accepted only if the normal validator gates pass,
 - Ollama is used only as fallback when MLX is unavailable or temporarily cooled down after repeated runtime failures,
-- MLX runs through the dedicated [`.venv-mlx/bin/python`](/Users/moldovancsaba/Projects/amanoba_courses/.venv-mlx/bin/python) interpreter,
-- the resident creator roles stay online as separate MLX servers and are shown in the dashboard as a single compact model roster:
-  - drafter on `127.0.0.1:8080`
-  - writer on `127.0.0.1:8081`
-  - judge on `127.0.0.1:8082`
+- MLX runs through the interpreter configured in `course_quality_daemon.json` and currently resolves to `/usr/bin/python3`,
 - the watchdog enforces MLX as the primary writer and treats fallback mode as a repairable incident,
 - Ollama model-level timeout fallback is still used when the Ollama primary/fallback chain is active,
 - Ollama runs with a low-power profile by default when it is used as fallback (`temperature 0.1`, `num_predict 384`, `num_ctx 2048`, `num_thread 2`),
@@ -139,7 +93,7 @@ The dashboard lets you:
 - create sovereign course-creator runs from `topic`, `target language`, and `research mode`,
 - generate and edit stage artifacts inside the creator modal,
 - watch queued, running, completed, failed, and archived jobs in kanban columns,
-- inspect provider health and the compact model roster,
+- inspect the compact `Model Roster`,
 - switch power mode between `gentle`, `balanced`, and `fast`,
 - trigger a new scan,
 - watch the single long-lived QC worker progress,
@@ -151,9 +105,6 @@ Creator UX behavior:
 
 - `Course Creator` and `Quality Control` are separate left-rail pages
 - the `Course Creator` page uses a kanban-style pipeline so the user can see where each run currently sits
-- creator stages now publish structured handoff data for `blueprint`, `lesson_generation`, and `quiz_generation`
-- QC handoff reads that structured data instead of depending only on reparsing the visible stage markdown
-- the UI can show `QC handoff ready` or `QC handoff blocked` from that contract directly
 - creator columns are:
   - `Research`
   - `Blueprint`
@@ -166,28 +117,24 @@ Creator UX behavior:
   - stage state
   - QC state
   - release state
-- creator cards are intentionally simple:
-  - current stage
-  - last action
-  - updated time
-- the creator modal is decision-point driven:
-  - show only the current stage content that needs review
-  - show only the valid actions for that stage
-  - hide internal run metadata and duplicate pipeline/status noise
-- the user action model is simple across the pipeline:
-  - `Accept`
-  - `Modify`
-  - `Delete`
-- `Accept` moves to the next stage and starts the next AI step automatically
-- `Modify` moves back one stage and starts rework automatically using the user note
-- `Delete` moves the run to trash
+- creator actions are split into three explicit groups:
+  - `Stage Workflow`
+  - `Downstream Release`
+  - `Recovery Controls`
+- the creator modal shows a `Lifecycle Checklist` for stage and release readiness
+- the creator modal shows `What Happens Next` so the user can understand the next valid action without guessing
+- the creator modal shows a stage-specific warning so the approval risk is explicit
+- artifact summaries now call out:
+  - decision risk
+  - QC readiness
+  - release readiness
 - the creator modal is stage-focused by default:
   - `Research` shows the research brief and source pack only
   - `Blueprint` shows one outline day at a time
   - `Lesson Generation` shows one lesson at a time
   - `Quiz Generation` shows one question at a time
   - `QC Review` starts as `QC Setup` until creator QC tasks exist, then switches into live QC progress
-  - `Draft To Live` shows the release decision only
+  - `Draft To Live` shows release state only
 - the modal does not repeat the full stage list, because the kanban column already provides the run position
 - raw artifact editing is hidden by default and appears only after the user selects `Show Edit Panel`
 - setup and release states hide invalid controls until they become relevant
@@ -218,6 +165,7 @@ Creator stage behavior:
   - `neutral`
   - `rejected`
 - source preference and rejection survive source refresh
+- the artifact summary exposes a `Grounding Basis` view so the user can see how much curated evidence is attached
 - `Blueprint`: 30-day architecture derived from the approved research artifact
 - `Lesson Generation`: 30-day lesson draft batch derived from the approved blueprint
 - `Quiz Generation`: quiz draft batch derived from the approved lesson batch
@@ -267,6 +215,7 @@ Installed services:
 - `com.amanoba.coursequality.worker`
 - `com.amanoba.coursequality.dashboard`
 - `com.amanoba.coursequality.watchdog`
+- `com.amanoba.coursequality.caffeinate`
 - `com.amanoba.coursequality.ollama` if `ollama` exists locally
 
 Service behavior:
@@ -275,8 +224,9 @@ Service behavior:
 - `ollama` uses `RunAtLoad` and `KeepAlive`
 - `worker` uses `RunAtLoad` and `KeepAlive`
 - `watchdog` uses `RunAtLoad` and `StartInterval`
+- `caffeinate` uses `RunAtLoad` and `KeepAlive`
 
-That means the UI/runtime services stay resident, the worker stays up continuously, and the watchdog is relaunched on schedule and at login.
+That means the UI/runtime services stay resident, the worker stays up continuously, the watchdog is relaunched on schedule and at login, and the Mac stays awake while the stack is active.
 The worker is also started with `nice -n 10` so it runs continuously at lower scheduler priority.
 
 ## Watchdog
@@ -326,7 +276,7 @@ Watchdog logs:
 To launch the app the same way as `{hatori}` or `{reply}`, use either root-level launcher:
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba_courses
+cd /Users/chappie/Projects/amanoba_courses
 ./start_amanoba.command
 ```
 
@@ -340,7 +290,7 @@ These launchers refresh the background services, wait for dashboard health, and 
 ## Quick start
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba_courses
+cd /Users/chappie/Projects/amanoba_courses
 cp course_quality_daemon.example.json course_quality_daemon.json
 python3 -m course_quality_daemon --config course_quality_daemon.json scan
 python3 -m course_quality_daemon --config course_quality_daemon.json health
@@ -392,21 +342,6 @@ For this project, the operational runtime source of truth is:
 - the launch-agent definitions in `scripts/install-course-quality-launchagents.sh`
 - the runtime reports under `.course-quality/reports/`
 
-Menubar build version:
-
-- `Amanoba v0.2.0`
-
-## Current dashboard surface
-
-- a single `Model Roster` row replaces the older split residency/runtime panels
-- the roster shows:
-  - `DRAFTER`
-  - `WRITER`
-  - `JUDGE`
-  - `mlx`
-  - `ollama`
-- each model entry uses short human-readable labels only, not filesystem paths
-
 GitHub issue planning source of truth is separate:
 
 - issue repository: `moldovancsaba/mvp-factory-control`
@@ -414,7 +349,7 @@ GitHub issue planning source of truth is separate:
 
 ## Recommended rollout
 
-- Make sure MLX/Apertus is installed in [`.venv-mlx`](/Users/moldovancsaba/Projects/amanoba_courses/.venv-mlx) and `ollama` has its fallback models pulled.
+- Make sure the configured MLX interpreter can import `mlx`, the configured Apertus snapshot exists on disk, and `ollama` has its fallback models pulled.
 - Run the dashboard and inspect a few real rewritten outputs while MLX is selected as the writer.
 - When the outputs are stable, install the launch agents and leave the system running in the background.
 - Keep `idle_sleep_seconds` and `post_task_sleep_seconds` non-zero so the worker remains gentle on the machine.

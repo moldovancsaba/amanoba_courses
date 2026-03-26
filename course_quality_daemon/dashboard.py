@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import html
 import json
-import re
 from pathlib import Path
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -327,44 +326,8 @@ HTML = """<!doctype html>
     .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
     .metric { margin-top: 8px; font-size: 28px; font-weight: 800; }
     .rail-card { padding: 14px; margin-top: 10px; }
-    .model-roster {
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 10px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      scroll-snap-type: x proximity;
-    }
-    .model-card {
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      background: #fffdf8;
-      min-width: 170px;
-      flex: 0 0 170px;
-      scroll-snap-align: start;
-    }
-    .model-card .tiny {
-      font-size: 11px;
-      line-height: 1.35;
-      word-break: break-word;
-    }
-    .model-card.resident {
-      background: #edf8f0;
-      border-color: #b9d2c3;
-    }
-    .model-card.degraded {
-      background: #fff5e8;
-      border-color: #e6c28d;
-    }
-    .model-card.restarting {
-      background: #eef3ff;
-      border-color: #b7c7f5;
-    }
-    .model-card.missing {
-      background: #f8e1e1;
-      border-color: #e2b2b2;
-    }
+    .runtime-item { padding: 10px 0; border-top: 1px solid var(--line); }
+    .runtime-item:first-child { border-top: 0; padding-top: 0; }
     .status.good { color: var(--good); }
     .status.warn { color: var(--warn); }
     .status.bad { color: var(--bad); }
@@ -679,8 +642,8 @@ HTML = """<!doctype html>
       </div>
 
       <div class='section'>
-        <h2>Models</h2>
-        <div class='rail-card' id='modelRoster'>__MODEL_ROSTER_HTML__</div>
+        <h2>Model Roster</h2>
+        <div class='rail-card' id='runtimeProviders'>__RUNTIME_HTML__</div>
       </div>
 
       <div class='section'>
@@ -700,6 +663,7 @@ HTML = """<!doctype html>
 
         <div class='creator-toolbar'>
           <button onclick='openCreateCourseModal()'>Create New Course</button>
+          <button class='secondary small' onclick='refreshCreatorRuns()'>Refresh Runs</button>
         </div>
         <div class='creator-kanban'>
           <section class='creator-column'>
@@ -802,12 +766,6 @@ HTML = """<!doctype html>
       </div>
       <div class='stack'>
         <div class='rail-card tiny' id='modalSummary'>Loading...</div>
-        <div class='detail-grid single' id='modalSpecialistSection'>
-          <div>
-            <div class='label'>QC Pipeline</div>
-            <div class='human-card' id='modalSpecialistPipeline'><div class='empty'>No specialist QC data.</div></div>
-          </div>
-        </div>
         <div class='detail-grid' id='modalDiffGrid'>
           <div>
             <div class='label'>Before</div>
@@ -851,10 +809,26 @@ HTML = """<!doctype html>
         </div>
       </div>
       <div class='stack'>
-        <div class='rail-card tiny' id='creatorModalSummary' style='display:none;'>Loading...</div>
+        <div class='rail-card tiny' id='creatorModalSummary'>Loading...</div>
+        <div id='creatorDraftSummarySection'>
+          <div class='label'>Draft Summary</div>
+          <div class='creator-summary-grid' id='creatorDraftSummary'></div>
+        </div>
+        <div id='creatorArtifactSummarySection'>
+          <div class='label'>Artifact Summary</div>
+          <div class='creator-summary-grid' id='creatorArtifactSummary'></div>
+        </div>
+        <div id='creatorChecklistSection'>
+          <div class='label'>Lifecycle Checklist</div>
+          <div class='checklist' id='creatorChecklist'></div>
+        </div>
         <div id='creatorWorkflowBannerSection'>
         <div class='label' id='creatorWorkflowBannerLabel'>Current State</div>
           <div class='workflow-banner' id='creatorWorkflowBanner'>Loading...</div>
+        </div>
+        <div id='creatorStageWarningSection'>
+          <div class='label'>Stage Warning</div>
+          <div class='context-callout warn' id='creatorStageWarning'>Loading...</div>
         </div>
         <div id='creatorStageFocusSection'>
           <div class='label' id='creatorStageFocusLabel'>Current Review Item</div>
@@ -905,24 +879,24 @@ HTML = """<!doctype html>
           <div class='creator-event-list' id='creatorEvents'></div>
         </div>
         <div>
-          <div class='label' id='creatorProcessControlsLabel'>Action</div>
-          <div class='inline-feedback info hidden-panel' id='creatorActionFeedback'></div>
+          <div class='label' id='creatorProcessControlsLabel'>Process Controls</div>
+          <div class='inline-feedback info' id='creatorActionFeedback'>No action yet.</div>
           <textarea id='creatorComment' placeholder='Write what to change. If you click Make New Draft, the system will use this note.'></textarea>
           <div class='action-board'>
             <div class='action-group' id='creatorStageActionGroup'>
-              <h3 id='creatorStageActionGroupTitle'>Action</h3>
+              <h3 id='creatorStageActionGroupTitle'>Stage Workflow</h3>
               <div class='action-help' id='creatorStageActionHelp'>Loading...</div>
               <div class='row-actions'>
                 <button class='secondary small' id='creatorToggleEditButton' onclick='toggleCreatorEditMode()'>Edit This Stage</button>
                 <button class='small' id='creatorGenerateButton' onclick='generateCreatorArtifact()'>Make New Draft</button>
                 <button class='secondary small' id='creatorSaveButton' onclick='saveCreatorArtifact()'>Save Manual Edit</button>
-                <button class='small' id='creatorAcceptButton' onclick='submitCreatorAction("accept")'>Accept</button>
-                <button class='secondary small' id='creatorUpdateButton' onclick='submitCreatorAction("update")'>Modify</button>
-                <button class='danger small' id='creatorDeleteButton' onclick='submitCreatorAction("delete")'>Delete</button>
+                <button class='small' id='creatorAcceptButton' onclick='submitCreatorAction("accept")'>Approve And Continue</button>
+                <button class='secondary small' id='creatorUpdateButton' onclick='submitCreatorAction("update")'>Send Back With My Note</button>
+                <button class='danger small' id='creatorDeleteButton' onclick='submitCreatorAction("delete")'>Delete This Run</button>
               </div>
             </div>
             <div class='action-group' id='creatorReleaseActionGroup'>
-              <h3>Action</h3>
+              <h3>Downstream Release</h3>
               <div class='action-help' id='creatorReleaseActionHelp'>Loading...</div>
               <div class='row-actions'>
                 <button class='small' id='creatorPromoteButton' onclick='promoteCreatorDraft()'>Promote Draft Package</button>
@@ -931,7 +905,7 @@ HTML = """<!doctype html>
               </div>
             </div>
             <div class='action-group' id='creatorRecoveryActionGroup'>
-              <h3>Recovery</h3>
+              <h3>Recovery Controls</h3>
               <div class='action-help' id='creatorRecoveryActionHelp'>Loading...</div>
               <div class='row-actions'>
                 <button class='secondary small' id='creatorRollbackButton' onclick='rollbackCreatorPublish()'>Rollback Live Publish</button>
@@ -971,7 +945,6 @@ HTML = """<!doctype html>
 const INITIAL_FEED = __INITIAL_FEED__;
 const INITIAL_HEALTH = __INITIAL_HEALTH__;
 const INITIAL_CREATOR = __INITIAL_CREATOR__;
-let currentCreatorSnapshot = INITIAL_CREATOR;
 let currentDetailTaskKey = null;
 let currentCreatorRunId = null;
 let currentCreatorStageKey = null;
@@ -1138,39 +1111,22 @@ function setElementVisible(id, visible) {
 function setInlineFeedback(id, kind, message) {
   const el = document.getElementById(id);
   if (!el) return;
-  const text = String(message || '').trim();
   el.className = `inline-feedback ${kind || 'info'}`;
-  el.textContent = text;
-  el.classList.toggle('hidden-panel', !text);
+  el.textContent = message || 'No action yet.';
 }
 function rememberCreatorFeedback(kind, message, runId = null) {
   creatorFeedbackState = {
     kind: kind || 'info',
-    message: String(message || '').trim(),
+    message: message || 'No action yet.',
     runId: runId || currentCreatorRunId || null,
-    stageKey: currentCreatorStageKey || null,
   };
 }
-function clearCreatorFeedback(runId = null) {
-  if (!creatorFeedbackState) {
-    setInlineFeedback('creatorActionFeedback', 'info', '');
-    return;
-  }
-  if (!runId || !creatorFeedbackState.runId || creatorFeedbackState.runId === runId) {
-    creatorFeedbackState = null;
-  }
-  setInlineFeedback('creatorActionFeedback', 'info', '');
-}
 function applyCreatorFeedback(runId = null) {
-  if (
-    creatorFeedbackState
-    && (!runId || !creatorFeedbackState.runId || creatorFeedbackState.runId === runId)
-    && (!currentCreatorStageKey || !creatorFeedbackState.stageKey || creatorFeedbackState.stageKey === currentCreatorStageKey)
-  ) {
+  if (creatorFeedbackState && (!runId || !creatorFeedbackState.runId || creatorFeedbackState.runId === runId)) {
     setInlineFeedback('creatorActionFeedback', creatorFeedbackState.kind, creatorFeedbackState.message);
     return;
   }
-  setInlineFeedback('creatorActionFeedback', 'info', '');
+  setInlineFeedback('creatorActionFeedback', 'info', 'No action yet.');
 }
 function setButtonBusy(id, busy, busyLabel = 'Working...') {
   const button = document.getElementById(id);
@@ -1260,11 +1216,6 @@ function creatorLifecycleState(run) {
 }
 function creatorStageHasReviewContent(run, stageKey) {
   const payload = (run && run.payload) || {};
-  const structured = (((payload || {}).structuredArtifacts) || {});
-  const stageStructure = structured[stageKey] || {};
-  if (Object.prototype.hasOwnProperty.call(stageStructure, 'ready')) {
-    return Boolean(stageStructure.ready);
-  }
   const stageArtifacts = payload.stageArtifacts || {};
   const content = String((((stageArtifacts || {})[stageKey] || {}).content) || '').trim();
   if (!content) return false;
@@ -1285,16 +1236,8 @@ function creatorRunBadges(run) {
   const state = creatorLifecycleState(run);
   const payload = (run && run.payload) || {};
   const qc = payload.qcStatus || {};
-  const handoff = payload.handoffStatus || {};
   const badges = [];
   badges.push({ cls: state.runStatus === 'completed' ? 'good' : state.activeStage ? 'warn' : 'bad', text: `Stage ${creatorStageLabel(state.activeStage || run.status || '-')}` });
-  if (state.activeStage === 'lesson_generation' || state.activeStage === 'quiz_generation' || state.activeStage === 'qc_review') {
-    if (handoff.readyForQc) {
-      badges.push({ cls: 'good', text: 'QC handoff ready' });
-    } else if (Array.isArray(handoff.missingStages) && handoff.missingStages.length) {
-      badges.push({ cls: 'warn', text: `Missing ${handoff.missingStages.length} handoff stage${handoff.missingStages.length === 1 ? '' : 's'}` });
-    }
-  }
   if (Number(qc.total || 0) > 0) {
     const qcBad =
       Number(qc.failed || 0) > 0 || Number(qc.quarantined || 0) > 0 ? 'bad'
@@ -1322,7 +1265,6 @@ function creatorStageWarning(run) {
   const state = creatorLifecycleState(run);
   const payload = (run && run.payload) || {};
   const qc = payload.qcStatus || {};
-  const handoff = payload.handoffStatus || {};
   const isSetup = creatorIsStageSetup(run);
   if (state.runStatus === 'completed') {
     return {
@@ -1358,10 +1300,7 @@ function creatorStageWarning(run) {
   }
   if (state.activeStage === 'qc_review') {
     if (state.qcTotal <= 0) {
-      const missing = Array.isArray(handoff.missingStages) && handoff.missingStages.length
-        ? handoff.missingStages.map((item) => creatorStageLabel(item)).join(', ')
-        : 'required stages';
-      return { cls: 'warn', title: 'QC handoff not created', detail: `QC cannot start yet. Missing or invalid: ${missing}.` };
+      return { cls: 'warn', title: 'QC handoff not created', detail: 'Generate QC Review to inject creator QC tasks before this stage can run.' };
     }
     if (Number(qc.failed || 0) > 0 || Number(qc.quarantined || 0) > 0) {
       return { cls: 'bad', title: 'QC still has blocking issues', detail: `Creator QC cannot be approved while failed (${qc.failed || 0}) or quarantined (${qc.quarantined || 0}) tasks remain.` };
@@ -1430,7 +1369,7 @@ function creatorRunState(run) {
         cls: 'good',
         title: 'Waiting For You',
         detail: 'Creator QC is complete and clean.',
-        next: 'Accept to move to Draft To Live.',
+        next: 'Click Approve And Continue to move to Draft To Live.',
       };
     }
   }
@@ -1463,7 +1402,7 @@ function creatorRunState(run) {
       cls: 'good',
       title: 'Waiting For You',
       detail: 'The course is already live in Amanoba.',
-      next: 'Accept to close the local creator run.',
+      next: 'Click Approve And Continue to close the local creator run.',
     };
   }
   if (isSetup) {
@@ -1479,16 +1418,20 @@ function creatorRunState(run) {
     cls: 'warn',
     title: 'Waiting For You',
     detail: `Review the current ${creatorStageLabel(state.activeStage || 'stage')} artifact.`,
-    next: 'Accept if this stage is good. Modify if it needs rework. Delete if you want to move the run to trash.',
+    next: 'If it is good, click Approve And Continue. If it needs changes, write a note and click Make New Draft or Send Back With My Note.',
   };
 }
 function configureCreatorStageChrome(run) {
+  const state = creatorLifecycleState(run);
+  const isQcSetup = state.activeStage === 'qc_review' && state.qcTotal <= 0;
+  const isStageSetup = creatorIsStageSetup(run);
+  const isDraftStage = state.activeStage === 'draft_to_live';
   const bannerLabel = document.getElementById('creatorWorkflowBannerLabel');
   const processLabel = document.getElementById('creatorProcessControlsLabel');
   const stageGroupTitle = document.getElementById('creatorStageActionGroupTitle');
-  if (bannerLabel) bannerLabel.textContent = 'Current State';
-  if (processLabel) processLabel.textContent = 'Action';
-  if (stageGroupTitle) stageGroupTitle.textContent = 'Action';
+  if (bannerLabel) bannerLabel.textContent = isQcSetup || isDraftStage || isStageSetup ? 'Current State' : 'What Happens Next';
+  if (processLabel) processLabel.textContent = isQcSetup || isStageSetup ? 'Action' : (isDraftStage ? 'Release Actions' : 'Process Controls');
+  if (stageGroupTitle) stageGroupTitle.textContent = isQcSetup || isStageSetup ? 'Primary Action' : (isDraftStage ? 'Finalize Run' : 'Stage Workflow');
 }
 function sourceStatusBadge(status) {
   const value = String(status || 'neutral');
@@ -1578,7 +1521,7 @@ function renderCreatorControls(run) {
   setElementVisible('creatorStageActionGroup', showStageActionGroup);
   setElementVisible('creatorReleaseActionGroup', showReleaseGroup);
   setElementVisible('creatorRecoveryActionGroup', showRecoveryGroup);
-  setElementVisible('creatorStageWarningSection', false);
+  setElementVisible('creatorStageWarningSection', !isQcSetup);
   setElementVisible('creatorComment', showCommentBox);
   const runState = creatorRunState(run);
   configureCreatorStageChrome(run);
@@ -1597,6 +1540,10 @@ function renderCreatorControls(run) {
   const banner = document.getElementById('creatorWorkflowBanner');
   banner.className = `workflow-banner ${bannerCls}`;
   banner.innerHTML = `<strong>${escapeHtml(bannerTitle)}</strong>${escapeHtml(bannerText)}`;
+  const warning = creatorStageWarning(run);
+  const warningHost = document.getElementById('creatorStageWarning');
+  warningHost.className = `context-callout ${warning.cls}`;
+  warningHost.innerHTML = `<strong>${escapeHtml(warning.title)}</strong>${escapeHtml(warning.detail)}`;
 }
 function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
   const bodyHost = document.getElementById('creatorStageFocusBody');
@@ -1611,7 +1558,7 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
   const payload = (run && run.payload) || {};
   const content = String((activeArtifact && activeArtifact.content) || '').trim();
   if (activeStageKey === 'research') {
-    metaHost.textContent = '';
+    metaHost.textContent = 'Review the approved research brief and curate the evidence set before moving to blueprint.';
     bodyHost.innerHTML = content ? renderRichText(content) : "<div class='empty'>No research brief yet.</div>";
     return;
   }
@@ -1619,14 +1566,14 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
     const rows = parseCreatorBlueprintDays(content);
     if (!rows.length) {
       document.getElementById('creatorStageFocusLabel').textContent = 'Blueprint Setup';
-      metaHost.textContent = '';
-      bodyHost.innerHTML = "<div class='empty'>There is no outline yet. Write a note if needed, then click Make New Draft.</div>";
+      metaHost.textContent = 'There is no blueprint outline yet.';
+      bodyHost.innerHTML = "<div class='empty'>Write a note if needed, then click Make New Draft to create the first blueprint outline.</div>";
       return;
     }
     const index = Math.min(currentCreatorReviewIndex, rows.length - 1);
     currentCreatorReviewIndex = index;
     const row = rows[index];
-    metaHost.textContent = `Day ${row.day || '-'} of ${rows.length}`;
+    metaHost.textContent = `Reviewing outline day ${row.day || '-'} of ${rows.length}. Approve only if the day goal, deliverable, and quiz focus are coherent.`;
     navHost.innerHTML = creatorReviewNav(index, rows.length, 'prevCreatorReviewItem', 'nextCreatorReviewItem', 'Day');
     bodyHost.innerHTML = `
       <div class='human-question'>Day ${escapeHtml(row.day || '-')} — ${escapeHtml(row.title || '-')}</div>
@@ -1641,14 +1588,14 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
     const rows = parseCreatorLessonRows(content);
     if (!rows.length) {
       document.getElementById('creatorStageFocusLabel').textContent = 'Lesson Setup';
-      metaHost.textContent = '';
-      bodyHost.innerHTML = "<div class='empty'>There are no lesson drafts yet. Write a note if needed, then click Make New Draft.</div>";
+      metaHost.textContent = 'There are no lesson drafts yet.';
+      bodyHost.innerHTML = "<div class='empty'>Write a note if needed, then click Make New Draft to create the lesson draft batch.</div>";
       return;
     }
     const index = Math.min(currentCreatorReviewIndex, rows.length - 1);
     currentCreatorReviewIndex = index;
     const row = rows[index];
-    metaHost.textContent = `Lesson ${index + 1} of ${rows.length}`;
+    metaHost.textContent = `Reviewing lesson ${index + 1} of ${rows.length}. Check tone, exercise quality, and language purity before advancing.`;
     navHost.innerHTML = creatorReviewNav(index, rows.length, 'prevCreatorReviewItem', 'nextCreatorReviewItem', 'Lesson');
     bodyHost.innerHTML = `
       <div class='human-question'>Day ${escapeHtml(row.day || '-')} — ${escapeHtml(row.lesson_title || '-')}</div>
@@ -1665,14 +1612,14 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
     const rows = parseCreatorQuizRows(content);
     if (!rows.length) {
       document.getElementById('creatorStageFocusLabel').textContent = 'Quiz Setup';
-      metaHost.textContent = '';
-      bodyHost.innerHTML = "<div class='empty'>There are no quiz drafts yet. Write a note if needed, then click Make New Draft.</div>";
+      metaHost.textContent = 'There are no quiz drafts yet.';
+      bodyHost.innerHTML = "<div class='empty'>Write a note if needed, then click Make New Draft to create the quiz draft batch.</div>";
       return;
     }
     const index = Math.min(currentCreatorReviewIndex, rows.length - 1);
     currentCreatorReviewIndex = index;
     const row = rows[index];
-    metaHost.textContent = `Question ${index + 1} of ${rows.length}`;
+    metaHost.textContent = `Reviewing quiz question ${index + 1} of ${rows.length}. Check application focus and make sure the stem intent is strong enough before QC handoff.`;
     navHost.innerHTML = creatorReviewNav(index, rows.length, 'prevCreatorReviewItem', 'nextCreatorReviewItem', 'Question');
     bodyHost.innerHTML = `
       <div class='human-question'>Day ${escapeHtml(row.day || '-')} · Question ${escapeHtml(row.question_number || '-')}</div>
@@ -1687,10 +1634,12 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
   if (activeStageKey === 'qc_review') {
     const qc = payload.qcStatus || {};
     if (lifecycle.qcTotal <= 0) {
-      metaHost.textContent = '';
+      metaHost.textContent = 'QC has not started yet. This stage needs a handoff before there is anything to review.';
       bodyHost.innerHTML = `
         <div class='human-question'>QC Setup</div>
-        <div class='choice-item'>QC has not started yet. Click <strong>Start QC Handoff</strong>.</div>
+        <div class='choice-item'><strong>Status</strong><br>No creator QC tasks exist yet.</div>
+        <div class='choice-item'><strong>What to do now</strong><br>Click <strong>Start QC Handoff</strong> to inject the creator lesson and quiz drafts into the QC queue.</div>
+        <div class='choice-item'><strong>After that</strong><br>The stage will switch from setup into a live QC progress view.</div>
       `;
       return;
     }
@@ -1699,11 +1648,13 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
       : (lifecycle.qcRunning > 0 || lifecycle.qcQueued > 0 || lifecycle.qcCompleted < lifecycle.qcTotal
         ? 'QC is currently working through the creator queue.'
         : 'QC is complete and waiting for your approval.');
-    metaHost.textContent = '';
+    metaHost.textContent = stateText;
     bodyHost.innerHTML = `
       <div class='human-question'>QC Review</div>
-      <div class='choice-item'>${escapeHtml(stateText)}</div>
-      <div class='choice-item'>${escapeHtml(`${qc.completed || 0}/${qc.total || 0} completed · running ${qc.running || 0} · queued ${qc.queued || 0} · failed ${qc.failed || 0} · quarantined ${qc.quarantined || 0}`)}</div>
+      <div class='choice-item'><strong>Status</strong><br>${escapeHtml(stateText)}</div>
+      <div class='choice-item'><strong>Progress</strong><br>${escapeHtml(`${qc.completed || 0}/${qc.total || 0} completed · running ${qc.running || 0} · queued ${qc.queued || 0} · failed ${qc.failed || 0} · quarantined ${qc.quarantined || 0}`)}</div>
+      <div class='choice-item'><strong>Recent completed</strong><br>${escapeHtml(((qc.recentCompleted || []).join(' | ')) || 'No completed creator QC tasks yet.')}</div>
+      <div class='choice-item'><strong>Recent failed</strong><br>${escapeHtml(((qc.recentFailed || []).join(' | ')) || 'No failed creator QC tasks.')}</div>
     `;
     return;
   }
@@ -1718,13 +1669,13 @@ function renderCreatorStageFocus(run, activeStageKey, activeArtifact) {
         : !lifecycle.isPublished
           ? 'The Amanoba draft is ready and waiting for live publish.'
           : 'The course is live in Amanoba and waiting for final local closeout.';
-    metaHost.textContent = '';
+    metaHost.textContent = statusText;
     bodyHost.innerHTML = `
       <div class='human-question'>Release State</div>
-      <div class='choice-item'>${escapeHtml(statusText)}</div>
+      <div class='choice-item'><strong>Status</strong><br>${escapeHtml(statusText)}</div>
       <div class='choice-item'><strong>Draft package</strong><br>${escapeHtml((promotion.packagePath) || 'No package yet.')}</div>
-      <div class='choice-item'><strong>Amanoba draft</strong><br>${escapeHtml(`${(importStatus.status) || 'not imported'} · ${(importStatus.courseId) || '-'}`)}</div>
-      <div class='choice-item'><strong>Live</strong><br>${escapeHtml(`${(publishStatus.status) || 'not published'} · ${(publishStatus.courseId) || '-'}`)}</div>
+      <div class='choice-item'><strong>Amanoba draft import</strong><br>${escapeHtml(`${(importStatus.status) || 'not imported'} · ${(importStatus.courseId) || '-'}`)}</div>
+      <div class='choice-item'><strong>Amanoba live publish</strong><br>${escapeHtml(`${(publishStatus.status) || 'not published'} · ${(publishStatus.courseId) || '-'}`)}</div>
     `;
     return;
   }
@@ -1812,19 +1763,26 @@ function creatorLastAction(run) {
   return '';
 }
 function creatorRunCardMarkup(run) {
+  const stage = run.activeStage || '-';
   const updated = run.updatedAt || '-';
   const targetLanguage = run.targetLanguage || '-';
   const researchMode = run.researchMode || '-';
   const artifactSummaries = run.artifactSummaries || {};
-  const activeSummary = artifactSummaries[run.activeStage || '-'] || {};
+  const activeSummary = artifactSummaries[stage] || {};
+  const badges = creatorRunBadges(run);
+  const nextCheckpoint = (run.draftSummary && run.draftSummary.nextCheckpoint) || '-';
   const boardState = creatorBoardState(run);
   const lastAction = creatorLastAction(run);
+  const nextCheckpointText = nextCheckpoint === 'No open checkpoint.' && stage !== '-' ? `${creatorStageLabel(stage)} review` : nextCheckpoint;
   return `<div class='creator-run-card ${escapeHtml(boardState.cls)}' data-run-id='${escapeHtml(run.runId)}' tabindex='0' role='button' onclick='openCreatorRun(this.getAttribute("data-run-id")); return false;' onkeydown='if(event.key==="Enter"||event.key===" "){ event.preventDefault(); openCreatorRun(this.getAttribute("data-run-id")); return false; }'>
     <div class='creator-title'>${escapeHtml(run.topic || run.runId)}</div>
     <div class='creator-status-line'><span class='creator-status-dot'></span>${escapeHtml(boardState.label)}</div>
     <div class='tiny'>language ${escapeHtml(targetLanguage)} | research ${escapeHtml(researchMode)}</div>
+    <div class='tiny'>status ${escapeHtml(run.status || '-')} | active stage ${escapeHtml(creatorStageLabel(stage))}</div>
+    <div class='badge-row'>${badges.map((badge) => `<span class='pill-badge ${badge.cls}'>${escapeHtml(badge.text)}</span>`).join('')}</div>
     ${activeSummary.headline ? `<div class='tiny'>${escapeHtml(activeSummary.headline)}</div>` : ''}
     ${lastAction ? `<div class='tiny'>${escapeHtml(lastAction)}</div>` : ''}
+    <div class='tiny'>next checkpoint ${escapeHtml(nextCheckpointText)}</div>
     <div class='tiny'>updated ${escapeHtml(updated)}</div>
   </div>`;
 }
@@ -1883,12 +1841,12 @@ function updateCreatorModalVisibility(activeStageKey, run = currentCreatorRunDat
   const showSource = stage === 'research';
   const showEditor = creatorStageSupportsEditor(stage) && currentCreatorEditMode;
   const showArtifactPreview = !['lesson_generation', 'quiz_generation', 'blueprint', 'research', 'qc_review', 'draft_to_live', 'cover_image'].includes(stage);
+  const showArtifactSummary = !isStageSetup && !['qc_review', 'draft_to_live'].includes(stage);
   setSectionVisible('creatorDraftSummarySection', false);
-  setSectionVisible('creatorArtifactSummarySection', false);
+  setSectionVisible('creatorArtifactSummarySection', showArtifactSummary);
   setSectionVisible('creatorChecklistSection', false);
-  setElementVisible('creatorModalSummary', false);
   setSectionVisible('creatorWorkflowBannerSection', true);
-  setSectionVisible('creatorStageWarningSection', false);
+  setSectionVisible('creatorStageWarningSection', !isStageSetup && !['draft_to_live'].includes(stage));
   setSectionVisible('creatorStageFocusSection', true);
   setSectionVisible('creatorSourcePackSection', showSource);
   setSectionVisible('creatorArtifactPreviewSection', showArtifactPreview);
@@ -1963,12 +1921,6 @@ function basename(value) {
   if (!text) return '';
   return text.split(/[\\\\/]/).filter(Boolean).pop() || text;
 }
-function friendlyModelName(value) {
-  const text = String(value || '').trim();
-  if (!text) return '-';
-  if (/^(?:\\/|[A-Za-z]:\\\\)/.test(text)) return basename(text);
-  return text;
-}
 function providerSummary(item) {
   const provider = String(item && item.provider ? item.provider : '').toLowerCase();
   const configured = String(item && item.configuredModel ? item.configuredModel : '').trim();
@@ -1978,11 +1930,11 @@ function providerSummary(item) {
     return {
       modelLabel: 'Model',
       runtimeLabel: 'Apertus 8B Instruct 4bit',
-      endpointLabel: 'Endpoint',
-      endpointValue: endpoint || '127.0.0.1:8080',
+      endpointLabel: 'local MLX runtime',
+      endpointValue: endpoint || '-',
     };
   }
-  const modelValue = friendlyModelName(resolved || configured || '-');
+  const modelValue = resolved || configured || '-';
   return {
     modelLabel: 'Model',
     runtimeLabel: modelValue,
@@ -1990,99 +1942,38 @@ function providerSummary(item) {
     endpointValue: endpoint || '-',
   };
 }
-function residencyClass(state) {
-  const value = String(state || '').toUpperCase();
-  if (value === 'RESIDENT') return 'resident';
-  if (value === 'DEGRADED') return 'degraded';
-  if (value === 'RESTARTING') return 'restarting';
-  return 'missing';
-}
-function summarizeRoleResidency(roleKey, roleData, pipelineData) {
-  const pipeline = pipelineData || {};
-  const role = roleData || {};
-  const installed = Boolean((pipeline && pipeline.installed) || role.installed);
-  const residentServer = Boolean(role.residentServer || role.resident_server || pipeline.residentServer || pipeline.resident_server);
-  const status = String(role.status || pipeline.statusLabel || '').toUpperCase();
-  const available = Boolean(role.available);
-  const detail = String(role.detail || pipeline.description || '').trim();
-  const serverPort = Number(role.serverPort || role.server_port || pipeline.serverPort || pipeline.server_port || 0) || null;
-  const shortDetail = detail
-    .replace(/MLX resident server is running on [^|]+(?:\\s*\\|\\s*runtime:.*)?/i, 'MLX resident server is running.')
-    .replace(/runtime:\\s*\\/Users\\/[^|]+/i, 'runtime: [local model]')
-    .replace(/\\/Users\\/[^|\\s]+/g, '[local path]')
-    .trim();
-  let state = 'MISSING';
-  if (!installed) {
-    state = 'MISSING';
-  } else if (residentServer && available && status === 'HEALTHY') {
-    state = 'RESIDENT';
-  } else if (residentServer && (status === 'DEGRADED' || status === 'UNAVAILABLE' || !available)) {
-    state = 'RESTARTING';
-  } else if (installed) {
-    state = 'DEGRADED';
-  }
-  return {
-    key: roleKey,
-    state,
-    status: status || 'UNKNOWN',
-    label: String(pipeline.label || role.label || roleKey).trim(),
-    tool: String(pipeline.tool || role.tool || '-').trim(),
-    detail: shortDetail || '-',
-    residentServer,
-    available,
-    serverPort,
-  };
-}
-function summarizeRuntimeProvider(item) {
-  const provider = String(item && item.provider ? item.provider : '').toLowerCase();
-  const summary = providerSummary(item);
-  return {
-    key: provider.toUpperCase() || '-',
-    state: String(item && item.status ? item.status : 'UNKNOWN').toUpperCase(),
-    label: summary.runtimeLabel,
-    tool: provider || '-',
-    detail: sanitizeRuntimeDetail(item && item.detail ? item.detail : ''),
-    endpointValue: summary.endpointValue,
-  };
-}
-function renderModelRoster(health) {
-  const host = document.getElementById('modelRoster');
-  if (!host) return;
-  const roles = (health && health.roles) || {};
-  const pipeline = (health && health.creatorPipeline) || {};
-  const roleItems = ['drafter', 'writer', 'judge'].map(roleKey => summarizeRoleResidency(roleKey, roles[roleKey], pipeline[roleKey]));
-  const runtimeItems = Array.isArray(health && health.runtime && health.runtime.providers) ? health.runtime.providers.map(summarizeRuntimeProvider) : [];
-  const items = roleItems.concat(runtimeItems);
-  if (!items.length) {
-    host.innerHTML = "<div class='model-roster'><div class='model-card missing'><div><strong>No model data</strong> <span class='status bad'>ERROR</span></div></div></div>";
-    return;
-  }
-  host.innerHTML = `
-    <div class='label'>Model Roster</div>
-    <div class='model-roster'>
-      ${items.map(item => {
-        const state = String(item.state || 'UNKNOWN').toUpperCase();
-        const stateClass = state === 'RESIDENT' ? 'resident' : (state === 'RESTARTING' ? 'restarting' : (state === 'DEGRADED' ? 'degraded' : 'missing'));
-        const badgeClass = state === 'RESIDENT' || state === 'HEALTHY' ? 'good' : (state === 'RESTARTING' ? 'warn' : 'bad');
-        const portLine = item.serverPort ? `resident server · port ${escapeHtml(String(item.serverPort))}` : (item.endpointValue ? `endpoint · ${escapeHtml(String(item.endpointValue))}` : '');
-        return `
-          <div class='model-card ${stateClass}'>
-            <div><strong>${escapeHtml(item.key)}</strong> <span class='status ${badgeClass}'>${escapeHtml(state)}</span></div>
-            <div class='tiny'>${escapeHtml(item.label)} · ${escapeHtml(item.tool)}</div>
-            <div class='tiny'>${escapeHtml(item.detail || '-')}</div>
-            ${portLine ? `<div class='tiny'>${portLine}</div>` : ''}
-          </div>
-        `;
-      }).join('')}
+function renderResidentRole(item) {
+  const name = String(item && item.name ? item.name : 'ROLE');
+  const host = String(item && item.host ? item.host : '127.0.0.1');
+  const port = String(item && item.port ? item.port : '-');
+  const detail = String(item && item.detail ? item.detail : `${host}:${port}`);
+  const status = String(item && item.status ? item.status : 'DOWN');
+  return `
+    <div class='runtime-item'>
+      <div><strong>${escapeHtml(name)}</strong> <span class='status ${clsFor(status)}'>${escapeHtml(status)}</span></div>
+      <div class='tiny'>Resident creator role</div>
+      <div class='tiny'>Endpoint: ${escapeHtml(host)}:${escapeHtml(port)}</div>
+      <div class='tiny'>${escapeHtml(detail)}</div>
     </div>
   `;
 }
-function sanitizeRuntimeDetail(detail) {
-  const text = String(detail || '').trim();
-  if (!text) return '-';
-  if (text.includes('MLX runtime available')) return 'MLX runtime available.';
-  if (text.includes('MLX resident server')) return 'MLX resident server is running.';
-  return text.replace(/\\/Users\\/[^\\s]+/g, '[local path]');
+function renderRuntime(runtime, residentRoles = []) {
+  const host = document.getElementById('runtimeProviders');
+  const providers = Array.isArray(runtime && runtime.providers) ? runtime.providers : [];
+  const roleItems = Array.isArray(residentRoles) ? residentRoles : [];
+  if (!providers.length && !roleItems.length) {
+    host.innerHTML = "<div class='runtime-item'><div><strong>No runtime data</strong> <span class='status bad'>ERROR</span></div></div>";
+    return;
+  }
+  const providerItems = providers.map(item => `
+    <div class='runtime-item'>
+      <div><strong>${escapeHtml(item.provider)}</strong> <span class='status ${clsFor(item.status)}'>${escapeHtml(item.status)}</span></div>
+      <div class='tiny'>${escapeHtml(item.detail)}</div>
+      <div class='tiny'>${escapeHtml(providerSummary(item).modelLabel)}: ${escapeHtml(providerSummary(item).runtimeLabel && isPathLike(providerSummary(item).runtimeLabel) ? basename(providerSummary(item).runtimeLabel) : providerSummary(item).runtimeLabel)}</div>
+      <div class='tiny'>${escapeHtml(providerSummary(item).endpointLabel)}: ${escapeHtml(providerSummary(item).endpointValue)}</div>
+    </div>
+  `);
+  host.innerHTML = providerItems.join('') + roleItems.map(renderResidentRole).join('');
 }
 function renderPower(power) {
   const profiles = power && power.profiles ? power.profiles : {};
@@ -2289,36 +2180,11 @@ function renderChangeSummary(task) {
   }
   el.innerHTML = `<div class='change-list'>${lines.join('')}</div>`;
 }
-function renderSpecialistPipeline(task) {
-  const el = document.getElementById('modalSpecialistPipeline');
-  if (!el) return;
-  const specialist = (((task || {}).details || {}).specialistPipeline) || null;
-  if (!specialist || !specialist.active) {
-    el.innerHTML = `<div class='empty'>No specialist QC data for this task.</div>`;
-    return;
-  }
-  const roles = specialist.roles || {};
-  const drafter = roles.drafter || {};
-  const writer = roles.writer || {};
-  const judge = roles.judge || {};
-  const trust = specialist.trustScore ?? '-';
-  const impact = specialist.impactScore ?? '-';
-  const accepted = specialist.accepted ? 'accepted' : 'not accepted';
-  const judgeReason = specialist.judgeReason || 'No judge reason recorded.';
-  const revisionNote = specialist.revisionNote || 'No revision note.';
-  const atomic = Array.isArray(drafter.atomicFocuses) ? drafter.atomicFocuses : [];
-  const risks = Array.isArray(drafter.risks) ? drafter.risks : [];
-  el.innerHTML = `
-    <div class='choice-item'><strong>Status</strong><br>${escapeHtml(accepted)} · trust ${escapeHtml(String(trust))} · impact ${escapeHtml(String(impact))}</div>
-    <div class='choice-item'><strong>Drafter</strong><br>${escapeHtml(drafter.rewriteBrief || 'No drafter brief.')}${atomic.length ? `<br><br><strong>Atomic focus</strong><br>${escapeHtml(atomic.join(' | '))}` : ''}${risks.length ? `<br><br><strong>Risks</strong><br>${escapeHtml(risks.join(' | '))}` : ''}</div>
-    <div class='choice-item'><strong>Writer</strong><br>${escapeHtml((writer.question || writer.title || writer.emailSubject || 'Writer output captured in final draft.'))}</div>
-    <div class='choice-item'><strong>Judge</strong><br>${escapeHtml(judgeReason)}<br><br><strong>Revision note</strong><br>${escapeHtml(revisionNote)}</div>
-  `;
-}
 function applySnapshot(feed, health, creatorSnapshot, lastActionText = 'Feed refreshed.') {
   window.__CURRENT_WORKER__ = health.worker || {};
-  currentCreatorSnapshot = creatorSnapshot || { runs: [], activeCount: 0, count: 0 };
   document.getElementById('generatedAt').textContent = `Updated ${feed.generatedAt}`;
+  document.getElementById('workspace').textContent = health.workspaceRoot || '';
+  document.getElementById('workspaceQc').textContent = health.workspaceRoot || '';
   document.getElementById('questionCount').textContent = (feed.inventory && feed.inventory.questions) || (health.inventory && health.inventory.questions) || 0;
   document.getElementById('lessonCount').textContent = (feed.inventory && feed.inventory.lessons) || (health.inventory && health.inventory.lessons) || 0;
   document.getElementById('courseCount').textContent = (feed.inventory && feed.inventory.courses) || (health.inventory && health.inventory.courses) || 0;
@@ -2334,9 +2200,9 @@ function applySnapshot(feed, health, creatorSnapshot, lastActionText = 'Feed ref
   renderJobs('failedJobs', feed.failed, 'No failed jobs.');
   renderJobs('quarantinedJobs', feed.quarantined, 'No quarantined jobs.');
   renderJobs('archivedJobs', feed.archived, 'No archived jobs.');
-  renderCreatorRuns(currentCreatorSnapshot || { runs: [], activeRunCount: 0 });
+  renderCreatorRuns(creatorSnapshot || { runs: [], activeRunCount: 0 });
   renderWorkerStatus(health.worker || {});
-  renderModelRoster(health || {});
+  renderRuntime(health.runtime || {}, (health.system && health.system.residentRoles) || []);
   renderPower(health.power || { mode: '-', profiles: {} });
   document.getElementById('lastAction').textContent = lastActionText;
 }
@@ -2348,7 +2214,7 @@ async function refreshAll() {
     const message = error instanceof Error ? error.message : String(error);
     document.getElementById('generatedAt').textContent = 'Refresh failed';
     document.getElementById('lastAction').textContent = message;
-    document.getElementById('modelRoster').innerHTML = `<div class='model-roster'><div class='model-card missing'><div><strong>Dashboard error</strong> <span class='status bad'>ERROR</span></div><div class='tiny'>${escapeHtml(message)}</div></div></div>`;
+    document.getElementById('runtimeProviders').innerHTML = `<div class='runtime-item'><div><strong>Dashboard error</strong> <span class='status bad'>ERROR</span></div><div class='tiny'>${escapeHtml(message)}</div></div>`;
   }
 }
 async function postAction(path, body = null) {
@@ -2368,55 +2234,23 @@ async function setPowerMode(mode) {
 async function refreshCreatorRuns() {
   try {
     const creator = await fetchJson('/api/creator/runs');
-    currentCreatorSnapshot = creator;
     renderCreatorRuns(creator);
     document.getElementById('lastAction').textContent = JSON.stringify(creator, null, 2);
   } catch (error) {
     document.getElementById('lastAction').textContent = error instanceof Error ? error.message : String(error);
   }
 }
-function mergeCreatorRunIntoSnapshot(run) {
-  if (!run) return;
-  const snapshot = currentCreatorSnapshot && typeof currentCreatorSnapshot === 'object'
-    ? { ...currentCreatorSnapshot }
-    : { generatedAt: null, count: 0, activeCount: 0, runs: [] };
-  const runs = Array.isArray(snapshot.runs) ? [...snapshot.runs] : [];
-  const index = runs.findIndex((item) => String(item.runId || '') === String(run.runId || ''));
-  if (index >= 0) runs[index] = run;
-  else runs.unshift(run);
-  snapshot.runs = runs;
-  snapshot.count = runs.length;
-  snapshot.activeCount = runs.filter((item) => ['active', 'ready-for-live'].includes(String(item.status || ''))).length;
-  currentCreatorSnapshot = snapshot;
-  renderCreatorRuns(snapshot);
-}
-function openCreateCourseModal() {
-  const feedback = document.getElementById('createCourseFeedback');
-  if (feedback) feedback.textContent = '';
-  document.getElementById('createCourseModal').classList.add('open');
-}
-function closeCreateCourseModal() {
-  document.getElementById('createCourseModal').classList.remove('open');
-}
 async function createCreatorRun() {
   const topic = document.getElementById('creatorTopic').value.trim();
   const targetLanguage = document.getElementById('creatorLanguage').value.trim() || 'en';
   const researchMode = document.getElementById('creatorResearchMode').value.trim() || 'optional';
   if (!topic) {
-    document.getElementById('createCourseFeedback').textContent = 'Course topic is required.';
+    window.alert('Course topic is required.');
     return;
   }
-  const result = await runActionWithFeedback({
-    buttonId: 'createCourseSubmitButton',
-    busyLabel: 'Creating...',
-    feedbackId: 'createCourseFeedback',
-    startMessage: 'Creating new course run...',
-    successMessage: 'Course run created.',
-    action: () => postAction('/api/creator/runs', { topic, targetLanguage, researchMode }),
-  });
+  const result = await postAction('/api/creator/runs', { topic, targetLanguage, researchMode });
   if (result && result.run && result.run.runId) {
     document.getElementById('creatorTopic').value = '';
-    closeCreateCourseModal();
     await openCreatorRun(result.run.runId);
   }
 }
@@ -2436,7 +2270,6 @@ async function openTaskDetail(taskKey) {
   document.getElementById('modalTitle').textContent = 'Task Detail';
   document.getElementById('modalMeta').textContent = taskKey;
   document.getElementById('modalSummary').textContent = 'Loading...';
-  document.getElementById('modalSpecialistPipeline').innerHTML = `<div class='empty'>Loading...</div>`;
   document.getElementById('modalBeforeHuman').innerHTML = `<div class='empty'>Loading...</div>`;
   document.getElementById('modalAfterHuman').innerHTML = `<div class='empty'>Loading...</div>`;
   document.getElementById('modalChangeSummary').innerHTML = `<div class='empty'>Loading...</div>`;
@@ -2469,17 +2302,16 @@ async function openTaskDetail(taskKey) {
       `Partial draft saved: ${partialApplied}`,
       `Backup: ${task.details && task.details.backup ? task.details.backup : '-'}`,
     ];
-    if (!hasAfterDraft) summaryLines.unshift('Rewrite result: no final draft was produced before the task failed.');
+    if (!hasAfterDraft) summaryLines.unshift('Rewrite result: no draft was produced before the task failed.');
     if (providerTimings.length) summaryLines.push(`Provider timings: ${providerTimings.map(item => `${item.provider}:${item.status}:${item.durationMs}ms`).join(' | ')}`);
     if (rca) summaryLines.push(`RCA: ${rca.type || '-'} | ${rca.summary || '-'}`);
     if (quarantine) summaryLines.push(`Quarantine: ${quarantine.status || 'active'} | attempts ${quarantine.attempts || task.attempts}`);
     document.getElementById('modalSummary').textContent = summaryLines.join('\\n');
-    renderSpecialistPipeline(task);
     renderHumanContent('modalBeforeHuman', task.details && task.details.before ? task.details.before : null, kindLabel);
     if (hasAfterDraft) {
       renderHumanContent('modalAfterHuman', task.details.after, kindLabel);
     } else {
-      document.getElementById('modalAfterHuman').innerHTML = `<div class='empty'>No final draft was saved before failure.</div>`;
+      document.getElementById('modalAfterHuman').innerHTML = `<div class='empty'>No rewritten draft was saved before failure.</div>`;
     }
     renderChangeSummary(task);
     const feedback = (task.feedback || []).map(item => `${item.createdAt}: ${item.comment}`).join('\\n\\n');
@@ -2488,7 +2320,6 @@ async function openTaskDetail(taskKey) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     document.getElementById('modalSummary').textContent = `Failed to load task detail.\n${message}`;
-    document.getElementById('modalSpecialistPipeline').innerHTML = `<div class='empty'>Failed to load detail.</div>`;
     document.getElementById('modalBeforeHuman').innerHTML = `<div class='empty'>Failed to load detail.</div>`;
     document.getElementById('modalAfterHuman').innerHTML = `<div class='empty'>Failed to load detail.</div>`;
     document.getElementById('modalChangeSummary').innerHTML = `<div class='empty'>Failed to load detail.</div>`;
@@ -2526,8 +2357,8 @@ async function openCreatorRun(runId) {
   }
   document.getElementById('creatorModal').classList.add('open');
   document.getElementById('creatorModalTitle').textContent = 'Creator Run';
-  document.getElementById('creatorModalMeta').textContent = '';
-  document.getElementById('creatorModalSummary').textContent = '';
+  document.getElementById('creatorModalMeta').textContent = runId;
+  document.getElementById('creatorModalSummary').textContent = 'Loading...';
   document.getElementById('creatorDraftSummary').innerHTML = "<div class='empty'>Loading...</div>";
   document.getElementById('creatorArtifactSummary').innerHTML = "<div class='empty'>Loading...</div>";
   document.getElementById('creatorSourcePack').innerHTML = "<div class='empty'>Loading...</div>";
@@ -2547,24 +2378,24 @@ async function openCreatorRun(runId) {
       return;
     }
     document.getElementById('creatorModalTitle').textContent = run.topic || run.runId;
-    document.getElementById('creatorModalMeta').textContent = `Updated ${run.updatedAt || '-'}`;
-    if (!creatorFeedbackState || creatorFeedbackState.kind === 'bad') {
-      clearCreatorFeedback(runId);
-    }
-    document.getElementById('creatorModalSummary').textContent = '';
+    document.getElementById('creatorModalMeta').textContent = `status ${run.status || '-'} | language ${run.targetLanguage || '-'} | research ${run.researchMode || '-'}`;
+    document.getElementById('creatorModalSummary').textContent = [
+      `Run id: ${run.runId || '-'}`,
+      `Active stage: ${creatorStageLabel(run.activeStage || '-')}`,
+      `Created: ${run.createdAt || '-'}`,
+      `Updated: ${run.updatedAt || '-'}`,
+    ].join('\\n');
     const draftSummary = run.draftSummary || {};
     const artifactSummaries = run.artifactSummaries || {};
     const stageBlueprint = (run.payload && run.payload.stageBlueprint) || {};
-    const stageContracts = (run.payload && run.payload.stageContracts) || {};
-    const retryPolicy = (run.payload && run.payload.retryPolicy) || {};
-    const stageAttempts = (run.payload && run.payload.stageAttempts) || {};
     const sourcePack = (run.payload && run.payload.sourcePack) || [];
     const activeStageKey = run.activeStage || '';
     currentCreatorStageKey = activeStageKey;
     const activeStagePlan = stageBlueprint[activeStageKey] || {};
     const stageArtifacts = (run.payload && run.payload.stageArtifacts) || {};
     const activeArtifact = stageArtifacts[activeStageKey] || {};
-    const activeArtifactProvenance = activeArtifact.provenance || {};
+    const preferredSources = sourcePack.filter((item) => String(item.reviewStatus || 'neutral') === 'preferred');
+    const rejectedSources = sourcePack.filter((item) => String(item.reviewStatus || 'neutral') === 'rejected');
     const summaryItems = [
       ['Course title candidate', draftSummary.courseTitleCandidate || run.topic || '-'],
       ['Target language', draftSummary.targetLanguage || run.targetLanguage || '-'],
@@ -2581,11 +2412,8 @@ async function openCreatorRun(runId) {
       ['Amanoba rollback', draftSummary.amanobaRollbackStatus || '-'],
       ['Amanoba delete import', draftSummary.amanobaDeleteStatus || '-'],
       ['Next checkpoint', draftSummary.nextCheckpoint || '-'],
-      ['Retry policy', retryPolicy.maxAttempts ? `max ${retryPolicy.maxAttempts} attempts` : '-'],
-      ['Current stage attempts', stageAttempts[activeStageKey] != null ? String(stageAttempts[activeStageKey]) : '0'],
       ['Current stage goal', activeStagePlan.goal || '-'],
       ['Current stage checkpoint', activeStagePlan.checkpoint || '-'],
-      ['Current stage owner', (stageContracts[activeStageKey] || {}).owner || '-'],
     ];
     document.getElementById('creatorDraftSummary').innerHTML = summaryItems.map(([label, value]) => `
       <div class='creator-summary-item'>
@@ -2597,6 +2425,8 @@ async function openCreatorRun(runId) {
     const summaryStats = Array.isArray(activeSummary.stats) ? activeSummary.stats : [];
     const summarySamples = Array.isArray(activeSummary.samples) ? activeSummary.samples : [];
     const summaryRows = [];
+    const lifecycle = creatorLifecycleState(run);
+    const warning = creatorStageWarning(run);
     if (activeSummary.headline) {
       summaryRows.push(`
         <div class='creator-summary-item'>
@@ -2621,16 +2451,41 @@ async function openCreatorRun(runId) {
         </div>
       `);
     }
-    if (activeArtifactProvenance && Object.keys(activeArtifactProvenance).length) {
+    if (sourcePack.length && activeStageKey !== 'qc_review' && activeStageKey !== 'draft_to_live') {
       summaryRows.push(`
         <div class='creator-summary-item'>
-          <div class='label'>Provenance</div>
-          <div>${escapeHtml([
-            activeArtifactProvenance.role || '-',
-            activeArtifactProvenance.provider || '-',
-            activeArtifactProvenance.model || '-',
-            activeArtifactProvenance.generatedAt || '-',
-          ].join(' | '))}</div>
+          <div class='label'>Grounding Basis</div>
+          <div>${escapeHtml(`${sourcePack.length} sources · preferred ${preferredSources.length} · rejected ${rejectedSources.length}`)}${preferredSources.length ? `<br>${preferredSources.slice(0, 3).map((item) => escapeHtml(item.domain || item.title || '-')).join('<br>')}` : ''}</div>
+        </div>
+      `);
+    }
+    if (activeStageKey !== 'qc_review') {
+      summaryRows.push(`
+        <div class='creator-summary-item'>
+          <div class='label'>Decision Risk</div>
+          <div><strong>${escapeHtml(warning.title)}</strong><br>${escapeHtml(warning.detail)}</div>
+        </div>
+      `);
+    }
+    if (activeStageKey === 'qc_review' || activeStageKey === 'draft_to_live' || lifecycle.runStatus === 'completed') {
+      const qc = ((run.payload || {}).qcStatus) || {};
+      summaryRows.push(`
+        <div class='creator-summary-item'>
+          <div class='label'>QC Readiness</div>
+          <div>${escapeHtml(lifecycle.qcReady ? 'Ready for downstream release.' : 'Not ready for downstream release yet.')}<br>${escapeHtml(`${qc.completed || 0}/${qc.total || 0} complete · failed ${qc.failed || 0} · quarantined ${qc.quarantined || 0}`)}</div>
+        </div>
+      `);
+    }
+    if (activeStageKey === 'draft_to_live' || lifecycle.runStatus === 'completed') {
+      const releaseSteps = [
+        lifecycle.hasPackage ? 'Package exported' : 'Package missing',
+        lifecycle.isDraftImported ? 'Amanoba draft imported' : 'Amanoba draft import missing',
+        lifecycle.isPublished ? 'Published live' : 'Live publish pending',
+      ];
+      summaryRows.push(`
+        <div class='creator-summary-item'>
+          <div class='label'>Release Readiness</div>
+          <div>${releaseSteps.map((item) => escapeHtml(item)).join('<br>')}</div>
         </div>
       `);
     }
@@ -2689,8 +2544,7 @@ async function openCreatorRun(runId) {
     renderCreatorControls(run);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    document.getElementById('creatorModalMeta').textContent = '';
-    document.getElementById('creatorModalSummary').textContent = '';
+    document.getElementById('creatorModalSummary').textContent = message;
     document.getElementById('creatorDraftSummary').innerHTML = "<div class='empty'>Failed to load creator run.</div>";
     document.getElementById('creatorArtifactSummary').innerHTML = "<div class='empty'>Failed to load creator run.</div>";
     document.getElementById('creatorChecklist').innerHTML = "<div class='empty'>Failed to load creator run.</div>";
@@ -2849,8 +2703,8 @@ async function generateCreatorArtifact() {
     }),
   });
   if (result && result.run && result.run.runId) {
-    mergeCreatorRunIntoSnapshot(result.run);
-    closeCreatorModal();
+    rememberCreatorFeedback('good', comment ? 'New draft created from your note.' : 'New draft created.', result.run.runId);
+    await openCreatorRun(result.run.runId);
     await refreshCreatorRuns();
   }
 }
@@ -2868,14 +2722,14 @@ async function submitCreatorAction(action) {
     : action === 'delete' ? 'Deleting...'
     : 'Working...';
   const startMessage =
-    action === 'accept' ? 'Accepting and starting the next step...'
-    : action === 'update' ? 'Moving back and starting rework...'
-    : action === 'delete' ? 'Moving run to trash...'
+    action === 'accept' ? 'Accepting current stage...'
+    : action === 'update' ? 'Sending stage back for update...'
+    : action === 'delete' ? 'Deleting creator run...'
     : 'Working...';
   const successMessage =
-    action === 'accept' ? 'Accepted. The next step started.'
-    : action === 'update' ? 'Moved back for rework.'
-    : action === 'delete' ? 'Run moved to trash.'
+    action === 'accept' ? 'Stage accepted.'
+    : action === 'update' ? 'Stage sent back for update.'
+    : action === 'delete' ? 'Creator run deleted.'
     : 'Action completed.';
   const result = await runActionWithFeedback({
     buttonId,
@@ -2886,8 +2740,12 @@ async function submitCreatorAction(action) {
     action: () => postAction('/api/creator/action', { runId: currentCreatorRunId, action, comment }),
   });
   if (result && result.run && result.run.runId) {
-    mergeCreatorRunIntoSnapshot(result.run);
-    closeCreatorModal();
+    const doneMessage =
+      action === 'accept' ? 'Stage approved. The run moved to the next step.'
+      : action === 'update' ? 'Your note was saved. This stage is now waiting for a new draft.'
+      : 'Creator run deleted.';
+    rememberCreatorFeedback(action === 'delete' ? 'warn' : 'good', doneMessage, result.run.runId);
+    await openCreatorRun(result.run.runId);
     await refreshCreatorRuns();
   }
 }
@@ -2977,9 +2835,6 @@ document.getElementById('detailModal').addEventListener('click', (event) => {
 document.getElementById('creatorModal').addEventListener('click', (event) => {
   if (event.target.id === 'creatorModal') closeCreatorModal();
 });
-document.getElementById('createCourseModal').addEventListener('click', (event) => {
-  if (event.target.id === 'createCourseModal') closeCreateCourseModal();
-});
 window.addEventListener('hashchange', syncPageFromHash);
 document.addEventListener('click', (event) => {
   const card = event.target instanceof Element ? event.target.closest('.job-card[data-task-key]') : null;
@@ -3054,93 +2909,45 @@ def render_dashboard_html(daemon: CourseQualityDaemon) -> str:
             return f"<div class='empty'>{esc(empty_text)}</div>"
         return "".join(card_html(row) for row in rows)
 
-    def model_roster_html(snapshot: dict[str, Any], runtime: dict[str, Any]) -> str:
-        def role_state(role_key: str) -> dict[str, Any]:
-            role = dict((snapshot.get("roles") or {}).get(role_key) or {})
-            pipe = dict((snapshot.get("creatorPipeline") or {}).get(role_key) or {})
-            installed = bool(pipe.get("installed") or role.get("installed"))
-            resident_server = bool(role.get("residentServer") or role.get("resident_server") or pipe.get("residentServer") or pipe.get("resident_server"))
-            status = str(role.get("status") or pipe.get("statusLabel") or "UNKNOWN").upper()
-            available = bool(role.get("available"))
-            server_port = role.get("serverPort") or role.get("server_port") or pipe.get("serverPort") or pipe.get("server_port")
-            if not installed:
-                state = "MISSING"
-            elif resident_server and available and status == "HEALTHY":
-                state = "RESIDENT"
-            elif resident_server and (status in {"DEGRADED", "UNAVAILABLE"} or not available):
-                state = "RESTARTING"
-            else:
-                state = "DEGRADED" if installed else "MISSING"
-            detail = str(role.get("detail") or pipe.get("description") or "-").strip()
-            detail = re.sub(r"MLX resident server is running on [^|]+(?:\\s*\\|\\s*runtime:.*)?", "MLX resident server is running.", detail, flags=re.I)
-            detail = re.sub(r"runtime:\\s*/Users/\\S+", "runtime: [local model]", detail, flags=re.I)
-            detail = re.sub(r"/Users/\\S+", "[local path]", detail)
-            label = str(pipe.get("label") or role.get("label") or role_key).strip()
-            tool = str(pipe.get("tool") or role.get("tool") or "-").strip()
-            return {
-                "key": role_key.upper(),
-                "state": state,
-                "detail": detail,
-                "label": label,
-                "tool": tool,
-                "resident": resident_server,
-                "serverPort": server_port,
-            }
+    def runtime_html(runtime: dict[str, Any], resident_roles: list[dict[str, Any]]) -> str:
+        def provider_summary(item: dict[str, Any]) -> tuple[str, str, str, str, str | None]:
+            provider = str(item.get("provider") or "").strip().lower()
+            configured = str(item.get("configuredModel") or "").strip()
+            resolved = str(item.get("resolvedModel") or "").strip()
+            endpoint = str(item.get("endpoint") or "").strip()
+            if provider == "mlx":
+                return ("Model", "Apertus 8B Instruct 4bit", None, None, "Endpoint", endpoint or "-")
+            model_value = resolved or configured or "-"
+            return ("Model", model_value, None, None, "Endpoint", endpoint or "-")
 
-        def runtime_state(item: dict[str, Any]) -> dict[str, Any]:
-            provider = str(item.get("provider") or "-").strip().upper()
-            summary = {
-                "provider": str(item.get("provider") or "").strip().lower(),
-                "configuredModel": str(item.get("configuredModel") or "").strip(),
-                "resolvedModel": str(item.get("resolvedModel") or "").strip(),
-                "endpoint": str(item.get("endpoint") or "").strip(),
-            }
-            detail = str(item.get("detail") or "").strip()
-            if "MLX runtime available" in detail:
-                detail = "MLX runtime available."
-            elif "MLX resident server" in detail:
-                detail = "MLX resident server is running."
-            detail = re.sub(r"/Users/\\S+", "[local path]", detail)
-            model_value = summary["resolvedModel"] or summary["configuredModel"] or "-"
-            if summary["provider"] == "mlx":
-                model_value = "Apertus 8B Instruct 4bit"
-            elif model_value.startswith("/"):
-                model_value = model_value.split("/")[-1]
-            endpoint_value = summary["endpoint"] or ("127.0.0.1:8080" if summary["provider"] == "mlx" else "-")
-            state = str(item.get("status") or "UNKNOWN").upper()
-            return {
-                "key": provider,
-                "state": state,
-                "detail": detail or "-",
-                "label": model_value,
-                "tool": summary["provider"] or "-",
-                "endpointValue": endpoint_value,
-            }
-
-        items = [role_state(role_key) for role_key in ("drafter", "writer", "judge")]
-        items.extend(runtime_state(item) for item in (runtime.get("providers") or []))
-        html_rows = []
-        for item in items:
-            state = str(item["state"]).upper()
-            cls = "resident" if state in {"RESIDENT", "HEALTHY"} else ("restarting" if state == "RESTARTING" else ("degraded" if state == "DEGRADED" else "missing"))
-            badge_cls = "good" if state in {"RESIDENT", "HEALTHY"} else ("warn" if state == "RESTARTING" else "bad")
-            port_value = item.get("serverPort")
-            endpoint_value = item.get("endpointValue")
-            footer = ""
-            if port_value:
-                footer = f"resident server · port {esc(port_value)}"
-            elif endpoint_value:
-                footer = f"endpoint · {esc(endpoint_value)}"
-            html_rows.append(
-                "<div class='model-card "
-                f"{cls}'>"
-                f"<div><strong>{esc(item['key'])}</strong> <span class='status {badge_cls}'>{esc(state)}</span></div>"
-                f"<div class='tiny'>{esc(item['label'])} · {esc(item['tool'])}</div>"
-                f"<div class='tiny'>{esc(item['detail'])}</div>"
-                + (f"<div class='tiny'>{footer}</div>" if footer else "")
-                + "</div>"
+        rows = []
+        for item in runtime.get("providers") or []:
+            status = str(item.get("status") or "")
+            cls = "good" if status in {"HEALTHY", "STANDBY", "completed"} else ("warn" if status in {"DEGRADED", "pending", "running"} else "bad")
+            model_label, model_value, extra_label, extra_value, endpoint_label, endpoint_value = provider_summary(item)
+            rows.append(
+                "<div class='runtime-item'>"
+                f"<div><strong>{esc(item.get('provider') or '-')}</strong> <span class='status {cls}'>{esc(status)}</span></div>"
+                f"<div class='tiny'>{esc(item.get('detail') or '')}</div>"
+                f"<div class='tiny'>{esc(model_label)}: {esc(model_value)}</div>"
+                + (f"<div class='tiny'>{esc(extra_label)}: {esc(extra_value)}</div>" if extra_label and extra_value else "")
+                + f"<div class='tiny'>{esc(endpoint_label)}: {esc(endpoint_value)}</div>"
+                "</div>"
             )
-        return "<div class='label'>Model Roster</div><div class='model-roster'>" + "".join(html_rows) + "</div>"
+        for role in resident_roles:
+            status = str(role.get("status") or "")
+            cls = "good" if status in {"WARM", "HEALTHY"} else "bad"
+            rows.append(
+                "<div class='runtime-item'>"
+                f"<div><strong>{esc(role.get('name') or 'ROLE')}</strong> <span class='status {cls}'>{esc(status)}</span></div>"
+                "<div class='tiny'>Resident creator role</div>"
+                f"<div class='tiny'>Endpoint: {esc(role.get('host') or '127.0.0.1')}:{esc(role.get('port') or '-')}</div>"
+                f"<div class='tiny'>{esc(role.get('detail') or '')}</div>"
+                "</div>"
+            )
+        if not rows:
+            return "<div class='runtime-item'><div><strong>No runtime data</strong> <span class='status bad'>ERROR</span></div></div>"
+        return "".join(rows)
 
     def creator_runs_html(snapshot: dict[str, Any]) -> str:
         def board_state(run: dict[str, Any]) -> tuple[str, str]:
@@ -3232,6 +3039,7 @@ def render_dashboard_html(daemon: CourseQualityDaemon) -> str:
         .replace("__INITIAL_CREATOR__", json.dumps(creator, ensure_ascii=False).replace("</", "<\\/"))
         .replace("__BUILD_STAMP__", esc(build_stamp))
         .replace("__GENERATED_AT__", esc(f"Updated {feed.get('generatedAt') or '-'}"))
+        .replace("__WORKSPACE__", esc(health.get("workspaceRoot") or ""))
         .replace("__WORKER_STATUS__", worker_status_html)
         .replace("__CREATOR_SUMMARY__", f"Visible runs <strong>{esc(creator.get('count') or 0)}</strong><br>Active runs <strong>{esc(creator.get('activeCount') or 0)}</strong>")
         .replace("__CREATOR_COUNT_LABEL__", esc(f"{creator.get('count') or 0} visible"))
@@ -3252,7 +3060,7 @@ def render_dashboard_html(daemon: CourseQualityDaemon) -> str:
         .replace("__QUARANTINED_HTML__", cards_html(feed.get("quarantined") or [], "No quarantined jobs."))
         .replace("__ARCHIVED_HTML__", cards_html(feed.get("archived") or [], "No archived jobs."))
         .replace("__POWER_SUMMARY__", power_summary)
-        .replace("__MODEL_ROSTER_HTML__", model_roster_html(health, health.get("runtime") or {}))
+        .replace("__RUNTIME_HTML__", runtime_html(health.get("runtime") or {}, ((health.get("system") or {}).get("residentRoles") or [])))
         .replace("__LAST_ACTION__", esc(f"Live snapshot loaded. Build {build_stamp}"))
     )
     return html_doc
@@ -3329,9 +3137,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         "taskKey": worker.get("taskKey"),
                         "heartbeatAt": worker.get("heartbeatAt"),
                         "progressAt": worker.get("progressAt"),
-                        "state": self.daemon._worker_state_snapshot().get("state"),
-                        "stalled": self.daemon._worker_state_snapshot().get("stalled"),
-                        "stalledSeconds": self.daemon._worker_state_snapshot().get("stalledSeconds"),
                     },
                 }
             )
@@ -3554,26 +3359,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 result = self.daemon.state.challenge_task(str(body.get("taskKey") or ""), str(body.get("comment") or ""))
             except ValueError as exc:
                 self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
-                return
-            self._send_json({"ok": True, "result": result}, status=HTTPStatus.ACCEPTED)
-            return
-        if parsed.path == "/api/shutdown":
-            body = self._read_json_body()
-            reason = str(body.get("reason") or "").strip()
-            try:
-                result = self.daemon.shutdown_services(reason=reason or None)
-            except Exception as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
-                return
-            self._send_json({"ok": True, "result": result}, status=HTTPStatus.ACCEPTED)
-            return
-        if parsed.path == "/api/restart":
-            body = self._read_json_body()
-            reason = str(body.get("reason") or "").strip()
-            try:
-                result = self.daemon.restart_services(reason=reason or None)
-            except Exception as exc:
-                self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
             self._send_json({"ok": True, "result": result}, status=HTTPStatus.ACCEPTED)
             return

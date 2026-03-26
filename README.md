@@ -41,7 +41,7 @@ After launch, open:
 Install:
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba_courses
+cd /Users/chappie/Projects/amanoba_courses
 bash tools/macos/AmanobaMenubar/install_AmanobaMenubar.sh
 ```
 
@@ -72,7 +72,7 @@ Mac mini handoff:
 ## Quick Start
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba_courses
+cd /Users/chappie/Projects/amanoba_courses
 ./start_amanoba.command
 ```
 
@@ -81,7 +81,7 @@ cd /Users/moldovancsaba/Projects/amanoba_courses
 Install or refresh restart-proof macOS launch agents:
 
 ```bash
-cd /Users/moldovancsaba/Projects/amanoba_courses
+cd /Users/chappie/Projects/amanoba_courses
 bash scripts/install-course-quality-launchagents.sh
 ```
 
@@ -96,6 +96,7 @@ Installed services:
 - `com.amanoba.coursequality.worker`
 - `com.amanoba.coursequality.dashboard`
 - `com.amanoba.coursequality.watchdog`
+- `com.amanoba.coursequality.caffeinate`
 - `com.amanoba.coursequality.ollama`
 
 Service behavior:
@@ -104,8 +105,9 @@ Service behavior:
 - `ollama`: `RunAtLoad` + `KeepAlive`
 - `worker`: `RunAtLoad` + `KeepAlive`
 - `watchdog`: `RunAtLoad` + `StartInterval`
+- `caffeinate`: `RunAtLoad` + `KeepAlive`
 
-So the UI/runtime stay resident, the worker stays up as one continuous daemon, and the watchdog relaunches on schedule and at login.
+So the UI/runtime stay resident, the worker stays up as one continuous daemon, the watchdog relaunches on schedule and at login, and the Mac stays awake while the stack is active.
 The queue is guarded by a shared process lock, so only one QC worker process can own job execution at a time.
 
 The watchdog is a separate supervisor, not the worker itself. It runs from launchd at login and on a repeating schedule, repairs stale locks and stuck tasks, kills frozen worker runs, enforces MLX/Apertus as the primary writer provider, and kickstarts the worker/dashboard/Ollama when health checks fail.
@@ -141,7 +143,7 @@ That means:
 - if the specialist path rejects or fails, QC falls back to the existing rewrite/failover path
 - Ollama is fallback only when MLX is unavailable or temporarily cooled down after repeated runtime failures,
 - the watchdog treats `selected provider != mlx` as a repairable incident and tries to restore MLX automatically,
-- the MLX path runs through the dedicated [`.venv-mlx/bin/python`](/Users/moldovancsaba/Projects/amanoba_courses/.venv-mlx/bin/python) interpreter so health checks and generation use the same runtime.
+- the MLX path runs through the interpreter configured in [`course_quality_daemon.json`](course_quality_daemon.json), which currently points to `/usr/bin/python3`.
 
 Current persisted mode lives in:
 
@@ -153,6 +155,7 @@ The dashboard shows:
 
 - `Course Creator` page for sovereign course creation runs
 - `Quality Control` page for live lesson/question QC
+- one compact `Model Roster`
 - queued jobs
 - running job
 - completed jobs
@@ -168,6 +171,12 @@ Useful URLs:
 - dashboard: `http://127.0.0.1:8765`
 - health: `http://127.0.0.1:8765/api/health`
 - feed: `http://127.0.0.1:8765/api/feed?limit=10`
+
+Resident creator roles that should stay warm:
+
+- `DRAFTER` on `127.0.0.1:8080`
+- `WRITER` on `127.0.0.1:8081`
+- `JUDGE` on `127.0.0.1:8082`
 
 ## Sovereign Course Creator
 
