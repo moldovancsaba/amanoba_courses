@@ -1,5 +1,7 @@
 # Amanoba Course Quality Control Center
 
+- [Project board review and manual movement / Scrum journal](docs/PROJECT_BOARD_MOVEMENT_LOG.md)
+
 Local-first control center for the live Amanoba system. It reads the live MongoDB-backed Amanoba app through a bridge, queues weak lessons and quiz questions, fixes one item at a time, and keeps running in the background with a local web control center.
 
 Current operating shape:
